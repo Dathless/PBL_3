@@ -1,34 +1,40 @@
 package com.example.PBL3.util;
 
+import org.springframework.stereotype.Component;
+
 import com.example.PBL3.dto.UserDTO;
 import com.example.PBL3.model.User;
 
+@Component
 public class MapperUtil {
 
-    public static UserDTO toDTO(User user) {
-        if (user == null) return null;
-        return new UserDTO(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getAddress(),
-                user.getPhone(),
-                user.isEnabled(),
-                user.getRole()
-        );
+    public User toUser(UserDTO userDTO) {
+        User user = new User();
+        user.setId(userDTO.getId());
+        user.setUsername(userDTO.getUsername());
+        user.setPassword(userDTO.getPassword());
+        user.setEmail(userDTO.getEmail());
+        user.setAddress(userDTO.getAddress());
+        user.setPhone(userDTO.getPhone());
+        user.setEnabled(userDTO.isEnabled());
+        user.setRole(userDTO.getRole());
+        user.setCreatedAt(userDTO.getCreatedAt());
+        user.setUpdatedAt(userDTO.getUpdatedAt());
+        return user;
     }
 
-    public static User toEntity(UserDTO dto, String password) {
-        if (dto == null) return null;
-        User user = new User();
-        user.setId(dto.getId());
-        user.setUsername(dto.getUsername());
-        user.setPassword(password); // password truyền riêng khi tạo User
-        user.setEmail(dto.getEmail());
-        user.setAddress(dto.getAddress());
-        user.setPhone(dto.getPhone());
-        user.setEnabled(dto.isEnabled());
-        user.setRole(dto.getRole());
-        return user;
+    public UserDTO toUserDTO(User user) {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(user.getId());
+        userDTO.setUsername(user.getUsername());
+        userDTO.setPassword(user.getPassword());
+        userDTO.setEmail(user.getEmail());
+        userDTO.setAddress(user.getAddress());
+        userDTO.setPhone(user.getPhone());
+        userDTO.setEnabled(user.isEnabled());
+        userDTO.setRole(user.getRole());
+        userDTO.setCreatedAt(user.getCreatedAt());
+        userDTO.setUpdatedAt(user.getUpdatedAt());
+        return userDTO;
     }
 }

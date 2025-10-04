@@ -1,16 +1,18 @@
 package com.example.PBL3.service;
 
 import java.util.List;
+import java.util.UUID;
 
 import com.example.PBL3.dto.UserDTO;
 
 public interface UserService {
-	List<UserDTO> getAllUsers();
-    UserDTO getUserById(String id);
-    UserDTO addUser(UserDTO userDTO, String password);
-    UserDTO updateUser(String id, UserDTO userDTO, String password);
-    void deleteUser(String id);
-
-    UserDTO findByUsername(String username);
-    UserDTO findByEmail(String email);
+    UserDTO createUser(UserDTO userDTO);
+    UserDTO getUserById(UUID id);
+    List<UserDTO> getAllUsers();
+    UserDTO updateUser(UUID id, UserDTO userDTO);
+    void deleteUser(UUID id);
+    
+    UserDTO getUserByUsername(String username);
+    UserDTO getUserByEmail(String email);
+    UserDTO getUserByPhone(String phone);
 }
