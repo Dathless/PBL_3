@@ -1,11 +1,10 @@
 package com.example.PBL3.controller;
 
+import com.example.PBL3.dto.UserDTO;
+import com.example.PBL3.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import com.example.PBL3.dto.UserDTO;
-import com.example.PBL3.service.UserService;
 
 import java.util.List;
 import java.util.UUID;

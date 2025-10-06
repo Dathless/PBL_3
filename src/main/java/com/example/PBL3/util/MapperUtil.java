@@ -1,9 +1,8 @@
 package com.example.PBL3.util;
 
-import org.springframework.stereotype.Component;
-
 import com.example.PBL3.dto.UserDTO;
 import com.example.PBL3.model.User;
+import org.springframework.stereotype.Component;
 
 @Component
 public class MapperUtil {
