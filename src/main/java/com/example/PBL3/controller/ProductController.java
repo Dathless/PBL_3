@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import com.example.PBL3.dto.ProductDTO;
 import com.example.PBL3.service.ProductService;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @RestController
@@ -42,5 +43,13 @@ public class ProductController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         productService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/search")
+    public ResponseEntity<List<ProductDTO>> search(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) List<UUID> ids) {
+        return ResponseEntity.ok(productService.search(name, minPrice, maxPrice, ids));
     }
 }

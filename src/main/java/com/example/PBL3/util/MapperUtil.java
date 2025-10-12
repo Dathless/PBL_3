@@ -1,12 +1,12 @@
 package com.example.PBL3.util;
 
-import com.example.PBL3.dto.ProductDTO;
-import com.example.PBL3.dto.ProductImageDTO;
-import com.example.PBL3.dto.UserDTO;
-import com.example.PBL3.model.Category;
-import com.example.PBL3.model.Product;
-import com.example.PBL3.model.User;
+import com.example.PBL3.dto.*;
+import com.example.PBL3.model.*;
+import com.example.PBL3.service.ProductService;
+import com.example.PBL3.service.UserService;
 
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class MapperUtil {
 
+	// ------------  USER -------------------//
     public User toUser(UserDTO userDTO) {
         User user = new User();
         user.setId(userDTO.getId());
@@ -43,7 +44,9 @@ public class MapperUtil {
         userDTO.setUpdatedAt(user.getUpdatedAt());
         return userDTO;
     }
-    
+
+    // -------------------- PRODUCT -------------------//
+
     public ProductDTO toProductDTO(Product entity) {
     		if (entity == null) return null;
         ProductDTO dto = new ProductDTO();
@@ -77,5 +80,45 @@ public class MapperUtil {
         product.setStatus(dto.getStatus());
         product.setCategory(category);
         return product;
+    }
+ // ------------ CART -------------------//
+    public CartDTO toCartDTO(Cart entity) {
+        if (entity == null) return null;
+        CartDTO dto = new CartDTO();
+        dto.setId(entity.getId());
+        dto.setUserId(entity.getUser() != null ? entity.getUser().getId() : null);
+        dto.setItems(entity.getItems().stream()
+                .map(this::toCartItemDTO)
+                .collect(Collectors.toList()));
+        return dto;
+    }
+
+    public Cart toCart(CartDTO dto, User user, List<CartItem> items) {
+        if (dto == null) return null;
+        Cart cart = new Cart();
+        cart.setId(dto.getId());
+        cart.setUser(user);
+        cart.setItems(items);
+        if (items != null) items.forEach(i -> i.setCart(cart));
+        return cart;
+    }
+
+    // ------------ CART ITEM -------------------//
+    public CartItemDTO toCartItemDTO(CartItem entity) {
+        if (entity == null) return null;
+        CartItemDTO dto = new CartItemDTO();
+        dto.setId(entity.getId());
+        dto.setProductId(entity.getProduct() != null ? entity.getProduct().getId() : null);
+        dto.setQuantity(entity.getQuantity());
+        return dto;
+    }
+
+    public CartItem toCartItem(CartItemDTO dto, Product product) {
+        if (dto == null) return null;
+        CartItem item = new CartItem();
+        item.setId(dto.getId());
+        item.setProduct(product);
+        item.setQuantity(dto.getQuantity());
+        return item;
     }
 }
