@@ -2,13 +2,15 @@ package com.example.PBL3.util;
 
 import com.example.PBL3.dto.*;
 import com.example.PBL3.model.*;
-import com.example.PBL3.service.ProductService;
-import com.example.PBL3.service.UserService;
+import com.example.PBL3.model.status.OrderStatus;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.hibernate.boot.model.internal.Nullability;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,6 +18,7 @@ public class MapperUtil {
 
 	// ------------  USER -------------------//
     public User toUser(UserDTO userDTO) {
+        if (userDTO == null) return null;
         User user = new User();
         user.setId(userDTO.getId());
         user.setUsername(userDTO.getUsername());
@@ -31,6 +34,7 @@ public class MapperUtil {
     }
 
     public UserDTO toUserDTO(User user) {
+    		if (user == null) return null;
         UserDTO userDTO = new UserDTO();
         userDTO.setId(user.getId());
         userDTO.setUsername(user.getUsername());
@@ -69,6 +73,7 @@ public class MapperUtil {
     }
 
     public Product toProduct(ProductDTO dto, Category category) {
+    		if (dto == null || category == null) return null;
         Product product = new Product();
         product.setId(dto.getId());
         product.setName(dto.getName());
@@ -81,6 +86,29 @@ public class MapperUtil {
         product.setCategory(category);
         return product;
     }
+ // ------------ CATEGORY ---------------//
+    public Category toCategory(CategoryDTO dto) {
+    		if (dto == null) return null;
+    		Category category = new Category();
+
+    		category.setId(dto.getId());
+    		category.setName(dto.getName());
+
+    		return category;
+    }
+
+    public CategoryDTO toCategoryDTO(Category entity) {
+    		if (entity == null) return null;
+
+    		CategoryDTO dto = new CategoryDTO();
+    		Long parentId = entity.getParent() != null ? entity.getParent().getId() : null;
+    		dto.setId(entity.getId());
+    		dto.setName(entity.getName());
+    		dto.setParentId(parentId);
+
+    		return dto;
+    }
+
  // ------------ CART -------------------//
     public CartDTO toCartDTO(Cart entity) {
         if (entity == null) return null;
@@ -121,4 +149,81 @@ public class MapperUtil {
         item.setQuantity(dto.getQuantity());
         return item;
     }
+    // ------------ ORDER -------------------//
+    public OrderDTO toOrderDTO(Order order) {
+        OrderDTO dto = new OrderDTO();
+        dto.setId(order.getId());
+        dto.setCustomerId(order.getCustomer().getId());
+        dto.setOrderDate(order.getOrderDate());
+        dto.setStatus(order.getStatus());
+        dto.setTotalAmount(order.getTotalAmount());
+        dto.setShippingAddress(order.getShippingAddress());
+        dto.setPaymentMethod(order.getPaymentMethod());
+
+        if (order.getItems() != null) {
+            dto.setItems(order.getItems().stream()
+                    .map(this::toOrderItemDTO)
+                    .collect(Collectors.toList()));
+        }
+        return dto;
+    }
+
+    public Order toOrder(OrderDTO dto, User customer, List<Product> products) {
+        Order order = new Order();
+        order.setCustomer(customer);
+        order.setShippingAddress(dto.getShippingAddress());
+        order.setPaymentMethod(dto.getPaymentMethod());
+        order.setOrderDate(dto.getOrderDate() != null ? dto.getOrderDate() : LocalDateTime.now());
+        order.setStatus(dto.getStatus() != null ? dto.getStatus() : OrderStatus.PENDING);
+
+        if (dto.getItems() != null) {
+            List<OrderItem> items = dto.getItems().stream()
+                    .map(itemDto -> {
+                        OrderItem item = new OrderItem();
+                        // tìm product theo id từ danh sách đã load
+                        Product product = products.stream()
+                                .filter(p -> p.getId().equals(itemDto.getProductId()))
+                                .findFirst()
+                                .orElseThrow(() -> new RuntimeException("Product not found: " + itemDto.getProductId()));
+                        item.setProduct(product);
+                        item.setQuantity(itemDto.getQuantity());
+                        item.setPrice(itemDto.getPrice());
+                        item.setOrder(order);
+                        return item;
+                    })
+                    .collect(Collectors.toList());
+
+            order.setItems(items);
+            BigDecimal total = items.stream()
+                    .map(i -> i.getPrice().multiply(BigDecimal.valueOf(i.getQuantity())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            order.setTotalAmount(total);
+        } else {
+            order.setTotalAmount(BigDecimal.ZERO);
+        }
+
+        return order;
+    }
+
+
+    // ------------ ORDER ITEM -------------------//
+
+    public OrderItemDTO toOrderItemDTO(OrderItem item) {
+        OrderItemDTO dto = new OrderItemDTO();
+        dto.setId(item.getId());
+        dto.setProductId(item.getProduct().getId());
+        dto.setQuantity(item.getQuantity());
+        dto.setPrice(item.getPrice());
+        return dto;
+    }
+
+    public OrderItem toOrderItem(OrderItemDTO dto, Order order, Product product) {
+        OrderItem item = new OrderItem();
+        item.setOrder(order);
+        item.setProduct(product);
+        item.setQuantity(dto.getQuantity());
+        item.setPrice(dto.getPrice());
+        return item;
+    }
+
 }

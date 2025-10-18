@@ -40,7 +40,7 @@ public class CartController {
         return ResponseEntity.ok(cartService.getAllCarts());
     }
 
-    @PostMapping("/{cartId}/items") 
+    @PostMapping("/{cartId}/items")
     public ResponseEntity<CartDTO> addCartItem(
             @PathVariable UUID cartId,
             @RequestBody CartItemDTO itemDTO) {
