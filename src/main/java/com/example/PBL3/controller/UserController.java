@@ -1,6 +1,9 @@
 package com.example.PBL3.controller;
 
 import com.example.PBL3.dto.UserDTO;
+import lombok.*;
+import lombok.extern.slf4j.Slf4j;
+
 import com.example.PBL3.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,17 +14,16 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
+@RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private final UserService userService;
 
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
-
     @PostMapping
     public ResponseEntity<UserDTO> createUser(@RequestBody UserDTO userDTO) {
         UserDTO createdUser = userService.createUser(userDTO);
+        log.info("User is created with id: " + userDTO.getId());
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
     }
 
@@ -47,5 +49,11 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDTO>> getAllUsersByName(
+            @RequestParam(required = false) String name) {
+        return ResponseEntity.ok(userService.getUsersByUsername(name));
     }
 }

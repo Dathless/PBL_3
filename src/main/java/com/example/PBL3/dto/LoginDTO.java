@@ -1,5 +1,9 @@
 package com.example.PBL3.dto;
 
-public class LoginDTO {
+import lombok.*;
 
+@Data
+public class LoginDTO {
+    private String username;
+    private String password;
 }

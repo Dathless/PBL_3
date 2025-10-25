@@ -1,13 +1,20 @@
 package com.example.PBL3.service.Impl;
 
+import com.example.PBL3.model.status.UserRole;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.PBL3.dto.UserDTO;
 import com.example.PBL3.model.User;
 import com.example.PBL3.repository.UserRepository;
 import com.example.PBL3.service.UserService;
 import com.example.PBL3.util.MapperUtil;
+
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import com.example.PBL3.exception.*;
 
 import java.util.List;
@@ -15,17 +22,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
+@RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final MapperUtil mapperUtil;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, MapperUtil mapperUtil, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.mapperUtil = mapperUtil;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Override
     public UserDTO createUser(UserDTO userDTO) {
@@ -99,12 +104,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO getUserByUsername(String username) {
-        User user = userRepository.findByUsername(username);
-        if (user == null) {
-            throw new UserNotFoundException("User not found with username: " + username);
-        }
-        return mapperUtil.toUserDTO(user);
+    public List<UserDTO> getUsersByUsername(String username) {
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .filter(user -> username == null || user.getUsername().toLowerCase().contains(username.toLowerCase()))
+                .map(mapperUtil::toUserDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -124,4 +130,5 @@ public class UserServiceImpl implements UserService {
         }
         return mapperUtil.toUserDTO(user);
     }
+
 }

@@ -1,6 +1,9 @@
 package com.example.PBL3.controller;
 
 import java.util.List;
+import lombok.*;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -12,13 +15,12 @@ import com.example.PBL3.service.OrderService;
 
 @RestController
 @RequestMapping("/api/orders")
+@RequiredArgsConstructor
+@Slf4j
 public class OrderController {
 
 	private final OrderService orderService;
 
-	public OrderController(OrderService orderService) {
-		this.orderService = orderService;
-	}
 
 	@GetMapping
 	public ResponseEntity<List<OrderDTO>> getAllOrders(){

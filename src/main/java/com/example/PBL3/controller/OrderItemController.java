@@ -1,6 +1,8 @@
 package com.example.PBL3.controller;
 
 import java.util.*;
+import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,13 +13,12 @@ import com.example.PBL3.service.OrderItemService;
 
 @RestController
 @RequestMapping("/api/order-items")
+@RequiredArgsConstructor
+@Slf4j
 public class OrderItemController {
 
     private final OrderItemService orderItemService;
 
-    public OrderItemController(OrderItemService orderItemService) {
-        this.orderItemService = orderItemService;
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderItemDTO> getOrderItemById(@PathVariable Long id) {

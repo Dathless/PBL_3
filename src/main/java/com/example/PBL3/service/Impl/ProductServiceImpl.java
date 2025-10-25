@@ -1,6 +1,9 @@
 package com.example.PBL3.service.Impl;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +22,8 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
+@Slf4j
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepo;
@@ -26,11 +31,6 @@ public class ProductServiceImpl implements ProductService {
     private final ProductImageRepository imageRepo;
     private final MapperUtil mapperUtil = new MapperUtil();
 
-    public ProductServiceImpl(ProductRepository productRepo, CategoryRepository categoryRepo, ProductImageRepository imageRepo) {
-        this.productRepo = productRepo;
-        this.categoryRepo = categoryRepo;
-        this.imageRepo = imageRepo;
-    }
 
     @Override
     public List<ProductDTO> getAll() {

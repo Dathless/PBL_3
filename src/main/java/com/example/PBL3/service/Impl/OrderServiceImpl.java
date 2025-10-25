@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.PBL3.dto.*;
 import com.example.PBL3.model.*;
@@ -12,11 +13,15 @@ import com.example.PBL3.repository.*;
 import com.example.PBL3.service.OrderService;
 import com.example.PBL3.util.MapperUtil;
 
-import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 
 
 @Service
 @Transactional
+@RequiredArgsConstructor
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
 	private final OrderRepository orderRepository;
@@ -24,15 +29,6 @@ public class OrderServiceImpl implements OrderService {
 	private final ProductRepository productRepository;
 	private final MapperUtil mapperUtil;
 
-	public OrderServiceImpl(OrderRepository orderRepository,
-								UserRepository userRepository,
-								ProductRepository productRepository,
-								MapperUtil mapperUtil) {
-		this.orderRepository = orderRepository;
-		this.userRepository = userRepository;
-		this.productRepository = productRepository;
-		this.mapperUtil = mapperUtil;
-	}
 
 	@Override
 	public List<OrderDTO> getAllOrders() {

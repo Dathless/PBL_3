@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.PBL3.dto.CategoryDTO;
 import com.example.PBL3.exception.UserNotFoundException;
@@ -12,15 +13,17 @@ import com.example.PBL3.repository.CategoryRepository;
 import com.example.PBL3.service.CategoryService;
 import com.example.PBL3.util.MapperUtil;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Transactional
+@RequiredArgsConstructor
+@Slf4j
 public class CategoryServiceImpl implements CategoryService {
 	private final CategoryRepository categoryRepo;
 	private final MapperUtil mapperUtil;
 
-	public CategoryServiceImpl(CategoryRepository categoryRepo, MapperUtil mapperUtil) {
-		this.categoryRepo = categoryRepo;
-		this.mapperUtil = mapperUtil;
-	}
 
 	@Override
 	public List<CategoryDTO> getAllCategories(){

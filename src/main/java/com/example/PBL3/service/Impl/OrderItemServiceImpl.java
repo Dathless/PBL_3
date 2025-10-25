@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.PBL3.dto.OrderItemDTO;
 import com.example.PBL3.model.Order;
@@ -14,26 +15,19 @@ import com.example.PBL3.repository.*;
 import com.example.PBL3.service.OrderItemService;
 import com.example.PBL3.util.MapperUtil;
 
-import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
+@RequiredArgsConstructor
+@Slf4j
 public class OrderItemServiceImpl implements OrderItemService {
 	private final OrderItemRepository orderItemRepository;
 	private final OrderRepository orderRepository;
 	private final ProductRepository productRepository;
 	private final MapperUtil mapperUtil;
 
-	public OrderItemServiceImpl(OrderItemRepository orderItemRepository,
-								OrderRepository orderRepository,
-								ProductRepository productRepository,
-								MapperUtil mapperUtil
-	) {
-		this.orderItemRepository = orderItemRepository;
-		this.orderRepository = orderRepository;
-		this.productRepository = productRepository;
-		this.mapperUtil = mapperUtil;
-	}
 
 	@Override
 	public OrderItemDTO getOrderItemById(Long id) {

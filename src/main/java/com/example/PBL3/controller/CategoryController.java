@@ -16,15 +16,17 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.PBL3.dto.CategoryDTO;
 import com.example.PBL3.service.CategoryService;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 @RestController
 @RequestMapping("/api/categories")
+@RequiredArgsConstructor
+@Slf4j
 public class CategoryController {
 
 	private final CategoryService categoryService;
 
-	public CategoryController(CategoryService categoryService) {
-		this.categoryService = categoryService;
-	}
 
 	@GetMapping
 	public ResponseEntity<List<CategoryDTO>> getAllCategories() {

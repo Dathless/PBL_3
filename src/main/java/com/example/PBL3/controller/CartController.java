@@ -7,18 +7,19 @@ import com.example.PBL3.dto.CartDTO;
 import com.example.PBL3.dto.CartItemDTO;
 import com.example.PBL3.service.CartService;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/carts")
+@RequiredArgsConstructor
+@Slf4j
 public class CartController {
 
     private final CartService cartService;
 
-    //Constructor
-	public CartController(CartService cartService) {
-		this.cartService = cartService;
-	}
 
     @PostMapping("/{userId}")
     public ResponseEntity<CartDTO> createCart(@PathVariable UUID userId) {

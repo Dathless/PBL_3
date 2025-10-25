@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+  <h2>Danh sách người dùng</h2>
+  <div id="users"></div>
+
+  <script>
+    fetch('/api/users')
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById('users');
+        data.forEach(u => {
+          const p = document.createElement('p');
+          p.textContent = `${u.id} - ${u.username} - ${u.email}`;
+          container.appendChild(p);
+        });
+      })
+      .catch(err => console.error('Lỗi fetch:', err));
+  </script>
+</body>
+</html>

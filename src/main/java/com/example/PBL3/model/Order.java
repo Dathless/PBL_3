@@ -1,12 +1,16 @@
 package com.example.PBL3.model;
 
 import jakarta.persistence.*;
+import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import org.hibernate.annotations.UuidGenerator;
 import com.example.PBL3.model.status.*;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "orders")
 public class Order {
@@ -46,34 +50,6 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderItem> items = new ArrayList<>();
-
-    // =====================
-    // Getters & Setters
-    // =====================
-
-    public UUID getId() { return id; }
-    public void setId(UUID id) { this.id = id; }
-
-    public User getCustomer() { return customer; }
-    public void setCustomer(User customer) { this.customer = customer; }
-
-    public LocalDateTime getOrderDate() { return orderDate; }
-    public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
-
-    public OrderStatus getStatus() { return status; }
-    public void setStatus(OrderStatus status) { this.status = status; }
-
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
-
-    public String getShippingAddress() { return shippingAddress; }
-    public void setShippingAddress(String shippingAddress) { this.shippingAddress = shippingAddress; }
-
-    public PaymentMethod getPaymentMethod() { return paymentMethod; }
-    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
-
-    public List<OrderItem> getItems() { return items; }
-    public void setItems(List<OrderItem> items) { this.items = items; }
 
     // Utility
     public void addItem(OrderItem item) {

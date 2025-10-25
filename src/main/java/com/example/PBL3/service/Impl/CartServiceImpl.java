@@ -1,7 +1,12 @@
 package com.example.PBL3.service.Impl;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import com.example.PBL3.exception.ResourceNotFoundException;
 
 import com.example.PBL3.dto.CartDTO;
@@ -24,6 +29,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
+@RequiredArgsConstructor
+@Slf4j
 public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
@@ -33,17 +41,6 @@ public class CartServiceImpl implements CartService {
     private final CategoryRepository categoryRepo;
     private final MapperUtil mapperUtil;
 
-    // Constructor
-    public CartServiceImpl(CartRepository cartRepository, CartItemRepository cartItemRepository,
-						   UserService userService, ProductService productService, CategoryRepository categoryRepo,
-						   MapperUtil mapperUtil, ProductServiceImpl productServiceImpl) {
-		this.cartRepository = cartRepository;
-		this.cartItemRepository = cartItemRepository;
-		this.userService = userService;
-		this.productService = productService;
-		this.categoryRepo = categoryRepo;
-		this.mapperUtil = mapperUtil;
-	}
 
     @Override
     public CartDTO createCart(UUID userId) {
@@ -86,7 +83,7 @@ public class CartServiceImpl implements CartService {
         		.orElseThrow(() -> new EntityNotFoundException("Category not found"));
         CartItem item = mapperUtil.toCartItem(itemDTO, mapperUtil.toProduct(productDTO, category));
         item.setCart(cart);
-        
+
         cartItemRepository.save(item);
 
         cart.getItems().add(item);

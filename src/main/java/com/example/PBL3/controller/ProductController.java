@@ -1,6 +1,9 @@
 package com.example.PBL3.controller;
 
 import org.springframework.http.ResponseEntity;
+import lombok.*;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.web.bind.annotation.*;
 
 import com.example.PBL3.dto.ProductDTO;
@@ -11,13 +14,12 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/products")
+@RequiredArgsConstructor
+@Slf4j
 public class ProductController {
 
     private final ProductService productService;
 
-    public ProductController(ProductService productService) {
-        this.productService = productService;
-    }
 
     @GetMapping
     public ResponseEntity<List<ProductDTO>> getAll() {
