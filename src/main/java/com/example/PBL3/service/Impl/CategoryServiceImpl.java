@@ -40,10 +40,6 @@ public class CategoryServiceImpl implements CategoryService {
 	@Override
 	public CategoryDTO createCategory(CategoryDTO dto) {
 
-//		if (categoryRepo.existByName(dto.getName())) {
-//			throw new DuplicateResourceException("Category already existed");
-//		}
-
 		Category category = mapperUtil.toCategory(dto);
 
 		if (dto.getParentId() != null) {

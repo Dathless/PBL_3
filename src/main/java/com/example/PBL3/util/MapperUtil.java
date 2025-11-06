@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.hibernate.boot.model.internal.Nullability;
@@ -28,8 +29,6 @@ public class MapperUtil {
         user.setPhone(userDTO.getPhone());
         user.setEnabled(userDTO.isEnabled());
         user.setRole(userDTO.getRole());
-        user.setCreatedAt(userDTO.getCreatedAt());
-        user.setUpdatedAt(userDTO.getUpdatedAt());
         return user;
     }
 
@@ -47,6 +46,25 @@ public class MapperUtil {
         userDTO.setCreatedAt(user.getCreatedAt());
         userDTO.setUpdatedAt(user.getUpdatedAt());
         return userDTO;
+    }
+
+    public LoginDTO toLoginDTO(User user) {
+        if (user == null) return null;
+        LoginDTO loginDTO = new LoginDTO();
+        loginDTO.setUsername(user.getUsername());
+        loginDTO.setPassword(user.getPassword());
+        return loginDTO;
+    }
+
+    public RegisterDTO toRegisterDTO(User user) {
+        if (user == null) return null;
+        RegisterDTO registerDTO = new RegisterDTO();
+        registerDTO.setUsername(user.getUsername());
+        registerDTO.setPassword(user.getPassword());
+        registerDTO.setEmail(user.getEmail());
+        registerDTO.setAddress(user.getAddress());
+        registerDTO.setPhone(user.getPhone());
+        return registerDTO;
     }
 
     // -------------------- PRODUCT -------------------//
@@ -141,6 +159,13 @@ public class MapperUtil {
         return dto;
     }
 
+    public CartItemDTO toCartItemDTO(UUID productId, Integer quantity) {
+        CartItemDTO dto = new CartItemDTO();
+        if (productId != null) dto.setProductId(productId);
+        dto.setQuantity(quantity);
+        return dto;
+    } 
+
     public CartItem toCartItem(CartItemDTO dto, Product product) {
         if (dto == null) return null;
         CartItem item = new CartItem();
@@ -151,6 +176,7 @@ public class MapperUtil {
     }
     // ------------ ORDER -------------------//
     public OrderDTO toOrderDTO(Order order) {
+        if (order == null) return null;
         OrderDTO dto = new OrderDTO();
         dto.setId(order.getId());
         dto.setCustomerId(order.getCustomer().getId());
@@ -169,6 +195,7 @@ public class MapperUtil {
     }
 
     public Order toOrder(OrderDTO dto, User customer, List<Product> products) {
+        if (dto == null) return null;
         Order order = new Order();
         order.setCustomer(customer);
         order.setShippingAddress(dto.getShippingAddress());
@@ -180,7 +207,7 @@ public class MapperUtil {
             List<OrderItem> items = dto.getItems().stream()
                     .map(itemDto -> {
                         OrderItem item = new OrderItem();
-                        // tìm product theo id từ danh sách đã load
+                        // find product by id from list
                         Product product = products.stream()
                                 .filter(p -> p.getId().equals(itemDto.getProductId()))
                                 .findFirst()
@@ -209,6 +236,7 @@ public class MapperUtil {
     // ------------ ORDER ITEM -------------------//
 
     public OrderItemDTO toOrderItemDTO(OrderItem item) {
+        if (item == null) return null;
         OrderItemDTO dto = new OrderItemDTO();
         dto.setId(item.getId());
         dto.setProductId(item.getProduct().getId());
@@ -218,12 +246,65 @@ public class MapperUtil {
     }
 
     public OrderItem toOrderItem(OrderItemDTO dto, Order order, Product product) {
+        if (dto == null) return null;
         OrderItem item = new OrderItem();
         item.setOrder(order);
         item.setProduct(product);
         item.setQuantity(dto.getQuantity());
         item.setPrice(dto.getPrice());
         return item;
+    }
+
+    // ----------- PAYMENT ------------//
+
+    public PaymentDTO toPaymentDTO(Payment payment) {
+        if (payment == null) return null;
+        PaymentDTO dto = new PaymentDTO();
+        dto.setId(payment.getId());
+        dto.setOrderId(payment.getOrder().getId());
+        dto.setAmount(payment.getAmount());
+        dto.setPaymentDate(payment.getPaymentDate());
+        dto.setPaymentStatus(payment.getStatus());
+        dto.setPaymentMethod(payment.getMethod());
+        dto.setCreatedAt(payment.getCreatedAt());
+        dto.setUpdatedAt(payment.getUpdatedAt());
+        return dto;
+    }
+
+    public Payment toPayment(PaymentDTO dto, Order order) {
+        if (dto == null) return null;
+        Payment payment = new Payment();
+        payment.setId(dto.getId());
+        payment.setOrder(order);
+        payment.setAmount(dto.getAmount());
+        payment.setPaymentDate(dto.getPaymentDate());
+        payment.setStatus(dto.getPaymentStatus());
+        payment.setMethod(dto.getPaymentMethod());
+        payment.setCreatedAt(dto.getCreatedAt());
+        payment.setUpdatedAt(dto.getUpdatedAt());
+        return payment;
+    }
+
+    public Payment toPayment(PaymentRequestDTO dto, Order order) {
+        if (dto == null) return null;
+        Payment payment = new Payment();
+        payment.setOrder(order);
+        payment.setAmount(dto.getAmount());
+        payment.setMethod(dto.getMethod());
+        return payment;
+    }
+
+    public PaymentResponseDTO toPaymentResponseDTO(Payment payment) {
+        if (payment == null) return null;
+        PaymentResponseDTO dto = new PaymentResponseDTO();
+        dto.setId(payment.getId());
+        dto.setOrderId(payment.getOrder().getId());
+        dto.setAmount(payment.getAmount());
+        dto.setCreatedAt(payment.getCreatedAt());
+        dto.setPaymentDate(payment.getPaymentDate());
+        dto.setPaymentStatus(payment.getStatus());
+        dto.setPaymentMethod(payment.getMethod());
+        return dto;
     }
 
 }

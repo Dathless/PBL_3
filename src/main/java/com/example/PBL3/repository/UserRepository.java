@@ -2,6 +2,7 @@ package com.example.PBL3.repository;
 
 import com.example.PBL3.model.User;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import com.example.PBL3.model.status.UserRole;
@@ -12,7 +13,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);
 
-    User findByUsername(String username);
-    User findByEmail(String email);
-    User findByPhone(String phone);
+    Optional<User> findByUsername(String username);
+    Optional<User> findByEmail(String email);
+    Optional<User> findByPhone(String phone);
 }

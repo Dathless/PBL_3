@@ -1,7 +1,6 @@
 package com.example.PBL3.service.Impl;
 
-import com.example.PBL3.model.status.UserRole;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.example.PBL3.util.PassEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +28,6 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final MapperUtil mapperUtil;
-    private final PasswordEncoder passwordEncoder;
-
 
     @Override
     public UserDTO createUser(UserDTO userDTO) {
@@ -45,7 +42,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = mapperUtil.toUser(userDTO);
-        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        user.setPassword(PassEncoder.encode(userDTO.getPassword()));
         User savedUser = userRepository.save(user);
         return mapperUtil.toUserDTO(savedUser);
     }
@@ -85,7 +82,7 @@ public class UserServiceImpl implements UserService {
         User updatedUser = mapperUtil.toUser(userDTO);
         updatedUser.setId(id);
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
-            updatedUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+            updatedUser.setPassword(PassEncoder.encode(userDTO.getPassword()));
         } else {
             updatedUser.setPassword(existingUser.getPassword());
         }
@@ -115,7 +112,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
         if (user == null) {
             throw new UserNotFoundException("User not found with email: " + email);
         }
@@ -124,7 +122,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO getUserByPhone(String phone) {
-        User user = userRepository.findByPhone(phone);
+        User user = userRepository.findByPhone(phone)
+                .orElseThrow(() -> new UserNotFoundException("User not found with phone: " + phone));
         if (user == null) {
             throw new UserNotFoundException("User not found with phone: " + phone);
         }

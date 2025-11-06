@@ -1,8 +1,10 @@
 package com.example.PBL3.util;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Component;
 
-public class PasswordEncoder {
+@Component
+public class PassEncoder {
 
     private static final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 

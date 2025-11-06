@@ -1,10 +1,10 @@
 package com.example.PBL3.service;
 
-import com.example.PBL3.dto.JwtResponse;
 import com.example.PBL3.dto.LoginDTO;
-import com.example.PBL3.dto.RegisterDTO;
+import com.example.PBL3.dto.LoginResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
-    JwtResponse login(LoginDTO dto);
-    String register(RegisterDTO dto);
+    LoginResponse login(LoginDTO dto,  HttpServletResponse response);
+//    String register(RegisterDTO dto);
 }
