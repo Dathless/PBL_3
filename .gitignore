@@ -44,4 +44,8 @@ target/
 .env
 
 ### Create Database SQL ###
-DataBase_Create_SQL.txt
+DataBase_Create_SQL.txtnode_modules
+.next
+dist
+.DS_Store
+.env
