@@ -209,8 +209,8 @@ export default function ProductPage() {
       size: selectedSize,
     })
     toast({
-      title: "Đã thêm vào giỏ hàng",
-      description: `${product.name} đã được thêm vào giỏ hàng của bạn.`,
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart.`,
     })
   }
 
@@ -251,8 +251,8 @@ export default function ProductPage() {
         size: selectedSize,
       })
       toast({
-        title: "Đã thêm vào giỏ hàng",
-        description: `${product.name} đã được thêm vào giỏ hàng của bạn.`,
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart.`,
       })
     }
   }

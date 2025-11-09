@@ -1,88 +1,94 @@
 "use client"
 
+import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ShoppingCart } from "lucide-react"
 import { useBuyNow } from "@/contexts/buy-now-context"
+import { AddToCartModal } from "@/components/add-to-cart-modal"
 
 interface Product {
   id: number
   name: string
   image: string
-  price: string
+  price: string | number
   badge?: string
 }
 
 const products: Product[] = [
   {
-    id: 7,
+    id: 1,
     name: "BALENCIAGA WOMENS 150 ML BAG YELLOW & FRONT CLIP",
     image: "/balenciaga-bag.jpg",
     price: "SAR 1200",
     badge: "SALE",
   },
   {
-    id: 8,
-    name: "GUCCI CHAIN BELT",
+    id: 2,
+    name: "GUCCI SLING WOMEN WITH 100+ GOLD CHAIN BELT",
     image: "/gucci-chain-belt.jpg",
-    price: "SAR 650",
+    price: "SAR 5800",
   },
   {
     id: 3,
-    name: "DIOR WOMENS BELT WITH CHAIN",
+    name: "DIOR WOMENS WOMEN WITH 100 GULL CHAIN BELT",
     image: "/dior-womens-belt.jpg",
     price: "SAR 3400",
     badge: "ON SALE",
   },
   {
-    id: 9,
+    id: 4,
     name: "GUCCI SLING CLUTCH WOMEN WITH CHAIN",
     image: "/gucci-clutch.jpg",
     price: "SAR 6200",
   },
   {
-    id: 2,
-    name: "NIKE AIR FORCE 1",
+    id: 5,
+    name: "NIKE AIR FORCE 1 LOW",
     image: "/nike-air-force-sneakers.jpg",
-    price: "SAR 120",
+    price: "SAR 850",
+  },
+  {
+    id: 6,
+    name: "DIOR CHIC SADDLE WITH ENAMEL",
+    image: "/placeholder.svg?height=150&width=150",
+    price: "SAR 2800",
+  },
+  {
+    id: 7,
+    name: "GUCCI GG BAG DOUBLE WITH BAG",
+    image: "/placeholder.svg?height=150&width=150",
+    price: "SAR 4900",
+  },
+  {
+    id: 8,
+    name: "NIKE AIR JORDAN 1 LOW",
+    image: "/placeholder.svg?height=150&width=150",
+    price: "SAR 1200",
+  },
+  {
+    id: 9,
+    name: "GUCCI GG MARMONT LEATHER QUILTED JACKET",
+    image: "/placeholder.svg?height=150&width=150",
+    price: "SAR 8900",
   },
   {
     id: 10,
     name: "DIOR BAG SADDLE QUILTED",
-    image: "/dior-saddle-bag.jpg",
+    image: "/placeholder.svg?height=150&width=150",
     price: "SAR 5200",
-  },
-  {
-    id: 1,
-    name: "ADIDAS SAMBA OG SHOES",
-    image: "/adidas-samba-white-shoes.jpg",
-    price: "SAR 89",
-  },
-  {
-    id: 4,
-    name: "LONG-SLEEVED BLOUSE",
-    image: "/long-sleeved-blouse.jpg",
-    price: "SAR 45",
-  },
-  {
-    id: 5,
-    name: "ROLEX DAY-DATE 40",
-    image: "/rolex-daydate-watch.jpg",
-    price: "SAR 35000",
-  },
-  {
-    id: 6,
-    name: "DIOR APRES-SKI BOOT",
-    image: "/dior-ski-boot.jpg",
-    price: "SAR 1200",
   },
 ]
 
 export function FrequentlyBought() {
   const navigate = useNavigate()
   const { setBuyNowProduct } = useBuyNow()
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleBuy = (product: Product) => {
-    const price = parseInt(product.price.replace("SAR ", "").replace(",", ""))
+    const price = typeof product.price === 'string' 
+      ? parseInt(product.price.replace("SAR ", "").replace(",", ""))
+      : product.price
     setBuyNowProduct({
       id: product.id.toString(),
       name: product.name,
@@ -92,8 +98,18 @@ export function FrequentlyBought() {
     navigate(`/buy-now?id=${product.id}`)
   }
 
-  const handleAddToCart = (product: Product) => {
-    navigate(`/product/${product.id}`)
+  const handleAddToCart = (product: Product, e: React.MouseEvent) => {
+    e.preventDefault()
+    const price = typeof product.price === 'string' 
+      ? parseInt(product.price.replace("SAR ", "").replace(",", ""))
+      : product.price
+    setSelectedProduct({
+      id: product.id,
+      name: product.name,
+      image: product.image,
+      price: price,
+    })
+    setIsModalOpen(true)
   }
 
   return (
@@ -110,22 +126,26 @@ export function FrequentlyBought() {
 
       <div className="grid grid-cols-5 gap-4">
         {products.map((product) => (
-          <Link key={product.id} to={`/product/${product.id}`} className="group">
+          <div key={product.id} className="group">
             <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
-              <div className="relative aspect-square bg-gray-300 overflow-hidden">
-                {product.badge && (
-                  <span className="absolute top-2 left-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded">
-                    {product.badge}
-                  </span>
-                )}
-                <img
-                  src={product.image || "/placeholder.svg"}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition"
-                />
-              </div>
+              <Link to={`/product/${product.id}`}>
+                <div className="relative aspect-square bg-gray-300 overflow-hidden">
+                  {product.badge && (
+                    <span className="absolute top-2 left-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded">
+                      {product.badge}
+                    </span>
+                  )}
+                  <img
+                    src={product.image || "/placeholder.svg"}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition"
+                  />
+                </div>
+              </Link>
               <div className="p-3">
-                <h3 className="font-bold text-xs text-gray-900 line-clamp-2 mb-2">{product.name}</h3>
+                <Link to={`/product/${product.id}`}>
+                  <h3 className="font-bold text-xs text-gray-900 line-clamp-2 mb-2 hover:text-cyan-600 transition">{product.name}</h3>
+                </Link>
                 <p className="text-sm font-bold text-cyan-600 mb-2">{product.price}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -138,10 +158,7 @@ export function FrequentlyBought() {
                     BUY NOW
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleAddToCart(product)
-                    }}
+                    onClick={(e) => handleAddToCart(product, e)}
                     className="w-full border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
                   >
                     <ShoppingCart className="w-3 h-3" />
@@ -150,9 +167,24 @@ export function FrequentlyBought() {
                 </div>
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
+
+      {/* Add to Cart Modal */}
+      <AddToCartModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedProduct(null)
+        }}
+        product={selectedProduct ? {
+          id: selectedProduct.id,
+          name: selectedProduct.name,
+          price: typeof selectedProduct.price === 'number' ? selectedProduct.price : parseInt(selectedProduct.price.replace("SAR ", "").replace(",", "")),
+          image: selectedProduct.image,
+        } : null}
+      />
     </div>
   )
 }

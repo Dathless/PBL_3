@@ -72,8 +72,8 @@ export default function BuyNowPage() {
 
     if (!isAuthenticated) {
       toast({
-        title: "Yêu cầu đăng nhập",
-        description: "Vui lòng đăng nhập để tiếp tục thanh toán.",
+        title: "Login required",
+        description: "Please login to continue checkout.",
         variant: "destructive",
       })
       navigate(`/login?redirect=/buy-now?id=${productId}`)
@@ -131,8 +131,8 @@ export default function BuyNowPage() {
       setStep("payment")
     } else {
       toast({
-        title: "Vui lòng điền đầy đủ thông tin",
-        description: "Hãy kiểm tra lại các trường bắt buộc.",
+        title: "Please fill in all required fields",
+        description: "Please check the required fields.",
         variant: "destructive",
       })
     }
@@ -142,8 +142,8 @@ export default function BuyNowPage() {
     // Save address before placing order
     saveAddress(formData)
     toast({
-      title: "Đặt hàng thành công!",
-      description: "Cảm ơn bạn đã mua hàng. Đơn hàng của bạn đang được xử lý.",
+      title: "Order placed successfully!",
+      description: "Thank you for your purchase. Your order is being processed.",
     })
     navigate("/order-success")
   }
@@ -191,7 +191,7 @@ export default function BuyNowPage() {
                 {savedAddress && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                     <p className="text-sm text-green-800">
-                      ✓ Đã tải địa chỉ đã lưu. Bạn có thể chỉnh sửa nếu cần.
+                      ✓ Saved address loaded. You can edit if needed.
                     </p>
                   </div>
                 )}

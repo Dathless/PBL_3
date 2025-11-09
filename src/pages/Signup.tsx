@@ -25,8 +25,8 @@ export default function SignupPage() {
     
     // Show success toast
     toast({
-      title: "Đăng ký thành công!",
-      description: "Tài khoản của bạn đã được tạo. Bạn có thể mua hàng ngay bây giờ.",
+      title: "Sign up successful!",
+      description: "Your account has been created. You can start shopping now.",
     })
     
     navigate("/")

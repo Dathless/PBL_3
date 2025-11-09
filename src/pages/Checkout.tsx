@@ -55,8 +55,8 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!isAuthenticated) {
       toast({
-        title: "Yêu cầu đăng nhập",
-        description: "Vui lòng đăng nhập để tiếp tục thanh toán.",
+        title: "Login required",
+        description: "Please login to continue checkout.",
         variant: "destructive",
       })
       navigate("/login")
@@ -114,8 +114,8 @@ export default function CheckoutPage() {
       setStep("payment")
     } else {
       toast({
-        title: "Vui lòng điền đầy đủ thông tin",
-        description: "Hãy kiểm tra lại các trường bắt buộc.",
+        title: "Please fill in all required fields",
+        description: "Please check the required fields.",
         variant: "destructive",
       })
     }
@@ -170,7 +170,7 @@ export default function CheckoutPage() {
                 {savedAddress && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                     <p className="text-sm text-green-800">
-                      ✓ Đã tải địa chỉ đã lưu. Bạn có thể chỉnh sửa nếu cần.
+                      ✓ Saved address loaded. You can edit if needed.
                     </p>
                   </div>
                 )}

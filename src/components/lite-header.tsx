@@ -17,8 +17,8 @@ export function Header() {
   const handleLogout = () => {
     logout()
     toast({
-      title: "Đã đăng xuất",
-      description: "Bạn đã đăng xuất thành công.",
+      title: "Logged out",
+      description: "You have been logged out successfully.",
     })
   }
 
@@ -122,7 +122,7 @@ export function Header() {
           {navItems.map((item) => (
             <Link
               key={item.href}
-              to={item.href}
+                to={item.href}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
                 isActive(item.href) ? "bg-black text-white" : "text-gray-800 hover:text-red-600"
               }`}

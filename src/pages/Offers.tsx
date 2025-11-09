@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ShoppingCart } from "lucide-react"
 import { useBuyNow } from "@/contexts/buy-now-context"
+import { AddToCartModal } from "@/components/add-to-cart-modal"
 
 interface Product {
   id: number
@@ -92,6 +93,8 @@ const flashSaleProducts: Product[] = [
 export default function OffersPage() {
   const navigate = useNavigate()
   const { setBuyNowProduct } = useBuyNow()
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({
     days: 2,
     hours: 15,
@@ -140,7 +143,8 @@ export default function OffersPage() {
   }
 
   const handleAddToCart = (product: Product) => {
-    navigate(`/product/${product.id}`)
+    setSelectedProduct(product)
+    setIsModalOpen(true)
   }
 
   return (
@@ -261,6 +265,21 @@ export default function OffersPage() {
           </div>
         </div>
       </div>
+
+      {/* Add to Cart Modal */}
+      <AddToCartModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedProduct(null)
+        }}
+        product={selectedProduct ? {
+          id: selectedProduct.id,
+          name: selectedProduct.name,
+          price: selectedProduct.price,
+          image: selectedProduct.image,
+        } : null}
+      />
 
       <LiteFooter />
     </main>

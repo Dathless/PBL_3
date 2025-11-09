@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ShoppingCart } from "lucide-react"
 import { useBuyNow } from "@/contexts/buy-now-context"
+import { AddToCartModal } from "@/components/add-to-cart-modal"
 
 interface Product {
   id: number
@@ -15,32 +16,32 @@ interface Product {
 
 const products: Product[] = [
   {
-    id: 4,
+    id: 1,
     name: "LONG-SLEEVED BLOUSE",
     image: "/long-sleeved-blouse.jpg",
-    price: 45,
-    originalPrice: 75,
+    price: 1500,
+    originalPrice: 3000,
   },
   {
-    id: 5,
-    name: "ROLEX DAY-DATE 40",
-    image: "/rolex-daydate-watch.jpg",
-    price: 35000,
-    originalPrice: 45000,
+    id: 2,
+    name: "MAXI SIZE HOBO BAG",
+    image: "/hobo-bag-leather.jpg",
+    price: 2500,
+    originalPrice: 5000,
   },
   {
-    id: 6,
-    name: "DIOR APRES-SKI BOOT",
+    id: 3,
+    name: "DIOR-Apres-Ski-Boot",
     image: "/dior-ski-boot.jpg",
-    price: 1200,
-    originalPrice: 1800,
+    price: 4500,
+    originalPrice: 9000,
   },
   {
-    id: 7,
-    name: "BALENCIAGA WOMENS BAG",
-    image: "/balenciaga-bag.jpg",
-    price: 1800,
-    originalPrice: 2500,
+    id: 4,
+    name: "ROLEX-Day-Date-40",
+    image: "/rolex-daydate-watch.jpg",
+    price: 15000,
+    originalPrice: 30000,
   },
 ]
 
@@ -58,6 +59,8 @@ interface ProductTimer {
 export function DealsOfDay() {
   const navigate = useNavigate()
   const { setBuyNowProduct } = useBuyNow()
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [globalTime, setGlobalTime] = useState<TimeLeft>({
     days: 5,
     hours: 23,
@@ -150,11 +153,11 @@ export function DealsOfDay() {
           <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
             <Link to={`/product/${product.id}`} className="block">
               <div className="relative aspect-square bg-gray-200 overflow-hidden">
-                <span className="absolute top-2 left-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded z-10">
+                <span className="absolute top-2 left-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded">
                   SALE
                 </span>
                 {productTimers[product.id] && (
-                  <div className="absolute top-2 right-2 bg-cyan-500 text-white text-xs font-bold px-2 py-1 rounded z-10">
+                  <div className="absolute top-2 right-2 bg-cyan-500 text-white text-xs font-bold px-2 py-1 rounded">
                     {String(productTimers[product.id].hours).padStart(2, "0")}h{" "}
                     {String(productTimers[product.id].minutes).padStart(2, "0")}m
                   </div>
@@ -162,7 +165,7 @@ export function DealsOfDay() {
                 <img
                   src={product.image || "/placeholder.svg"}
                   alt={product.name}
-                  className="w-full h-full object-cover hover:scale-105 transition"
+                  className="w-full h-full object-cover"
                 />
               </div>
             </Link>
@@ -190,8 +193,10 @@ export function DealsOfDay() {
                   BUY NOW
                 </button>
                 <button
-                  onClick={() => {
-                    navigate(`/product/${product.id}`)
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setSelectedProduct(product)
+                    setIsModalOpen(true)
                   }}
                   className="w-full border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
                 >
@@ -203,6 +208,21 @@ export function DealsOfDay() {
           </div>
         ))}
       </div>
+
+      {/* Add to Cart Modal */}
+      <AddToCartModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedProduct(null)
+        }}
+        product={selectedProduct ? {
+          id: selectedProduct.id,
+          name: selectedProduct.name,
+          price: selectedProduct.price,
+          image: selectedProduct.image,
+        } : null}
+      />
     </div>
   )
 }
