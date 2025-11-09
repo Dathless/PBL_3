@@ -52,3 +52,4 @@ backend/.mvn/wrapper/maven-wrapper.jar
 node_modules/
 .next/
 dist/
+node_modules/
