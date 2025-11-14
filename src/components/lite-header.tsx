@@ -90,9 +90,17 @@ export function Header() {
           <div className="flex items-center gap-6">
             {isAuthenticated ? (
               <>
+                {user?.role === "seller" && (
+                  <Link
+                    to="/seller/dashboard"
+                    className="flex items-center gap-1 text-sm text-cyan-600 hover:text-cyan-700 font-semibold"
+                  >
+                    Seller Dashboard
+                  </Link>
+                )}
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <User className="w-4 h-4" />
-                  <span className="max-w-[150px] truncate">{user?.email}</span>
+                  <span className="max-w-[150px] truncate">{user?.name || user?.email}</span>
                 </div>
                 <button
                   onClick={handleLogout}
@@ -111,10 +119,12 @@ export function Header() {
                 <span>Account</span>
               </Link>
             )}
-            <Link to="/cart" className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 transition">
-              <ShoppingCart className="w-4 h-4" />
-              <span>Cart</span>
-            </Link>
+            {(!isAuthenticated || user?.role !== "seller") && (
+              <Link to="/cart" className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 transition">
+                <ShoppingCart className="w-4 h-4" />
+                <span>Cart</span>
+              </Link>
+            )}
           </div>
         </div>
 

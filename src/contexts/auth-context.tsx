@@ -2,10 +2,18 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react"
 
+export type UserRole = "buyer" | "seller"
+
+interface User {
+  email: string
+  role: UserRole
+  name?: string
+}
+
 interface AuthContextType {
   isAuthenticated: boolean
-  user: { email: string } | null
-  login: (email: string) => void
+  user: User | null
+  login: (email: string, role: UserRole, name?: string) => void
   logout: () => void
 }
 
@@ -13,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [user, setUser] = useState<{ email: string } | null>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   // Load auth state from localStorage on mount
   useEffect(() => {
@@ -25,11 +33,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const login = (email: string) => {
+  const login = (email: string, role: UserRole, name?: string) => {
+    const userData: User = { email, role, name }
     setIsAuthenticated(true)
-    setUser({ email })
+    setUser(userData)
     localStorage.setItem("isAuthenticated", "true")
-    localStorage.setItem("user", JSON.stringify({ email }))
+    localStorage.setItem("user", JSON.stringify(userData))
   }
 
   const logout = () => {

@@ -1,12 +1,13 @@
+"use client"
+
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"  
 import type React from "react"
-import { useNavigate } from "react-router-dom"
-import { useState, useEffect } from "react"
 
 import { TopBanner } from "@/components/top-banner"
 import { Header } from "@/components/lite-header"
 import { LiteFooter } from "@/components/lite-footer"
 import { useAuth } from "@/contexts/auth-context"
-import { useShipping } from "@/contexts/shipping-context"
 import { useToast } from "@/hooks/use-toast"
 
 interface CheckoutItem {
@@ -17,12 +18,10 @@ interface CheckoutItem {
 }
 
 export default function CheckoutPage() {
-  const navigate = useNavigate()
+  const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const { savedAddress, saveAddress } = useShipping()
   const { toast } = useToast()
   const [step, setStep] = useState<"shipping" | "payment" | "confirm">("shipping")
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -33,13 +32,6 @@ export default function CheckoutPage() {
     postalCode: "",
     country: "",
   })
-
-  // Load saved address on mount
-  useEffect(() => {
-    if (savedAddress) {
-      setFormData(savedAddress)
-    }
-  }, [savedAddress])
 
   const cartItems: CheckoutItem[] = [
     { id: "1", name: "ADIDAS SAMBA OG Shoes", price: 89, quantity: 1 },
@@ -55,76 +47,21 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!isAuthenticated) {
       toast({
-        title: "Requires login",
-        description: "Please login to continue checkout.",
+        title: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để tiếp tục thanh toán.",
         variant: "destructive",
       })
-      navigate("/login")
+      router.push("/login")
     }
-  }, [isAuthenticated, navigate, toast])
+  }, [isAuthenticated, router, toast])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
-    // Clear error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[name]
-        return newErrors
-      })
-    }
-  }
-
-  const validateShippingForm = () => {
-    const errors: Record<string, string> = {}
-    
-    if (!formData.firstName.trim()) {
-      errors.firstName = "First name is required"
-    }
-    if (!formData.lastName.trim()) {
-      errors.lastName = "Last name is required"
-    }
-    if (!formData.email.trim()) {
-      errors.email = "Email is required"
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = "Invalid email format"
-    }
-    if (!formData.phone.trim()) {
-      errors.phone = "Phone is required"
-    }
-    if (!formData.address.trim()) {
-      errors.address = "Address is required"
-    }
-    if (!formData.city.trim()) {
-      errors.city = "City is required"
-    }
-    if (!formData.postalCode.trim()) {
-      errors.postalCode = "Postal code is required"
-    }
-
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  const handleContinueToPayment = () => {
-    if (validateShippingForm()) {
-      // Save address for next time
-      saveAddress(formData)
-      setStep("payment")
-    } else {
-      toast({
-        title: "Please fill in all information",
-        description: "Please double check required fields.",
-        variant: "destructive",
-      })
-    }
   }
 
   const handlePlaceOrder = () => {
-    // Save address before placing order
-    saveAddress(formData)
-    navigate("/order-success")
+    router.push("/order-success")
   }
 
   if (!isAuthenticated) {
@@ -167,124 +104,68 @@ export default function CheckoutPage() {
             {step === "shipping" && (
               <div className="space-y-4">
                 <h2 className="text-xl font-bold mb-6">Shipping Address</h2>
-                {savedAddress && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                    <p className="text-sm text-green-800">
-                      ✓ Saved addresses loaded. You can edit if needed.
-                    </p>
-                  </div>
-                )}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <input
-                      type="text"
-                      name="firstName"
-                      placeholder="First Name *"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      className={`w-full border rounded-lg px-4 py-2 ${
-                        formErrors.firstName ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
-                    {formErrors.firstName && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.firstName}</p>
-                    )}
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      name="lastName"
-                      placeholder="Last Name *"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      className={`w-full border rounded-lg px-4 py-2 ${
-                        formErrors.lastName ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
-                    {formErrors.lastName && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.lastName}</p>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Email *"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className={`w-full border rounded-lg px-4 py-2 ${
-                      formErrors.email ? "border-red-500" : "border-gray-300"
-                    }`}
-                  />
-                  {formErrors.email && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
-                  )}
-                </div>
-                <div>
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="Phone *"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className={`w-full border rounded-lg px-4 py-2 ${
-                      formErrors.phone ? "border-red-500" : "border-gray-300"
-                    }`}
-                  />
-                  {formErrors.phone && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>
-                  )}
-                </div>
-                <div>
                   <input
                     type="text"
-                    name="address"
-                    placeholder="Street Address *"
-                    value={formData.address}
+                    name="firstName"
+                    placeholder="First Name"
+                    value={formData.firstName}
                     onChange={handleInputChange}
-                    className={`w-full border rounded-lg px-4 py-2 ${
-                      formErrors.address ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className="border border-gray-300 rounded-lg px-4 py-2"
                   />
-                  {formErrors.address && (
-                    <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>
-                  )}
+                  <input
+                    type="text"
+                    name="lastName"
+                    placeholder="Last Name"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className="border border-gray-300 rounded-lg px-4 py-2"
+                  />
                 </div>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
+                <input
+                  type="text"
+                  name="address"
+                  placeholder="Street Address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                />
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <input
-                      type="text"
-                      name="city"
-                      placeholder="City *"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      className={`w-full border rounded-lg px-4 py-2 ${
-                        formErrors.city ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
-                    {formErrors.city && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.city}</p>
-                    )}
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      name="postalCode"
-                      placeholder="Postal Code *"
-                      value={formData.postalCode}
-                      onChange={handleInputChange}
-                      className={`w-full border rounded-lg px-4 py-2 ${
-                        formErrors.postalCode ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
-                    {formErrors.postalCode && (
-                      <p className="text-red-500 text-xs mt-1">{formErrors.postalCode}</p>
-                    )}
-                  </div>
+                  <input
+                    type="text"
+                    name="city"
+                    placeholder="City"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    className="border border-gray-300 rounded-lg px-4 py-2"
+                  />
+                  <input
+                    type="text"
+                    name="postalCode"
+                    placeholder="Postal Code"
+                    value={formData.postalCode}
+                    onChange={handleInputChange}
+                    className="border border-gray-300 rounded-lg px-4 py-2"
+                  />
                 </div>
                 <button
-                  onClick={handleContinueToPayment}
+                  onClick={() => setStep("payment")}
                   className="w-full bg-cyan-500 text-white py-3 rounded-lg font-bold hover:bg-cyan-600 transition"
                 >
                   Continue to Payment
@@ -415,4 +296,3 @@ export default function CheckoutPage() {
     </main>
   )
 }
-

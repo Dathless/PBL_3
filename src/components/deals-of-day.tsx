@@ -5,45 +5,24 @@ import { Link, useNavigate } from "react-router-dom"
 import { ShoppingCart } from "lucide-react"
 import { useBuyNow } from "@/contexts/buy-now-context"
 import { AddToCartModal } from "@/components/add-to-cart-modal"
+import { getAllProducts } from "@/data/products"
 
 interface Product {
-  id: number
+  id: string
   name: string
   image: string
   price: number
   originalPrice: number
 }
 
-const products: Product[] = [
-  {
-    id: 1,
-    name: "LONG-SLEEVED BLOUSE",
-    image: "/long-sleeved-blouse.jpg",
-    price: 1500,
-    originalPrice: 3000,
-  },
-  {
-    id: 2,
-    name: "MAXI SIZE HOBO BAG",
-    image: "/hobo-bag-leather.jpg",
-    price: 2500,
-    originalPrice: 5000,
-  },
-  {
-    id: 3,
-    name: "DIOR-Apres-Ski-Boot",
-    image: "/dior-ski-boot.jpg",
-    price: 4500,
-    originalPrice: 9000,
-  },
-  {
-    id: 4,
-    name: "ROLEX-Day-Date-40",
-    image: "/rolex-daydate-watch.jpg",
-    price: 15000,
-    originalPrice: 30000,
-  },
-]
+// Get first 4 products from database
+const products: Product[] = getAllProducts().slice(0, 4).map(p => ({
+  id: p.id,
+  name: p.name,
+  image: p.image,
+  price: p.price,
+  originalPrice: p.originalPrice,
+}))
 
 interface TimeLeft {
   days: number
@@ -53,7 +32,7 @@ interface TimeLeft {
 }
 
 interface ProductTimer {
-  [key: number]: TimeLeft
+  [key: string]: TimeLeft
 }
 
 export function DealsOfDay() {
@@ -68,12 +47,17 @@ export function DealsOfDay() {
     seconds: 23,
   })
 
-  const [productTimers, setProductTimers] = useState<ProductTimer>({
-    1: { days: 2, hours: 15, minutes: 30, seconds: 45 },
-    2: { days: 1, hours: 8, minutes: 20, seconds: 10 },
-    3: { days: 3, hours: 12, minutes: 45, seconds: 55 },
-    4: { days: 0, hours: 6, minutes: 5, seconds: 30 },
-  })
+  const [productTimers, setProductTimers] = useState<ProductTimer>(
+    products.reduce((acc, p) => {
+      acc[p.id] = { 
+        days: Math.floor(Math.random() * 3), 
+        hours: Math.floor(Math.random() * 24), 
+        minutes: Math.floor(Math.random() * 60), 
+        seconds: Math.floor(Math.random() * 60) 
+      }
+      return acc
+    }, {} as ProductTimer)
+  )
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -101,8 +85,7 @@ export function DealsOfDay() {
       setProductTimers((prev) => {
         const updated = { ...prev }
         Object.keys(updated).forEach((key) => {
-          const id = Number(key)
-          let { days, hours, minutes, seconds } = updated[id]
+          let { days, hours, minutes, seconds } = updated[key]
           seconds--
           if (seconds < 0) {
             seconds = 59
@@ -116,7 +99,7 @@ export function DealsOfDay() {
               }
             }
           }
-          updated[id] = { days, hours, minutes, seconds }
+          updated[key] = { days, hours, minutes, seconds }
         })
         return updated
       })
@@ -174,14 +157,14 @@ export function DealsOfDay() {
                 <h3 className="font-bold text-sm text-gray-900 line-clamp-2 hover:text-cyan-600 transition">{product.name}</h3>
               </Link>
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-red-600 font-bold text-sm">SAR {product.price}</span>
-                <span className="text-gray-400 line-through text-xs">SAR {product.originalPrice}</span>
+                <span className="text-red-600 font-bold text-sm">${product.price}</span>
+                <span className="text-gray-400 line-through text-xs">${product.originalPrice}</span>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-3">
                 <button
                   onClick={() => {
                     setBuyNowProduct({
-                      id: product.id.toString(),
+                      id: product.id,
                       name: product.name,
                       price: product.price,
                       image: product.image,

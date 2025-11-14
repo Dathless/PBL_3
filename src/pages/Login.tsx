@@ -5,9 +5,12 @@ import { Header } from "@/components/lite-header"
 import { LiteFooter } from "@/components/lite-footer"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { Eye, EyeOff } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { useCart } from "@/contexts/cart-context"
+import { useBuyNow } from "@/contexts/buy-now-context"
 import { useToast } from "@/hooks/use-toast"
+
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -16,22 +19,95 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { login } = useAuth()
+  const { addToCart } = useCart()
+  const { setBuyNowProduct } = useBuyNow()
   const { toast } = useToast()
+
+  // Pre-fill email if coming from signup
+  useEffect(() => {
+    const emailParam = searchParams.get("email")
+    if (emailParam) {
+      setEmail(emailParam)
+    }
+  }, [searchParams])
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate login - in real app, you'd call an API
-    login(email)
     
-    // Show success toast
+    // Get user data from localStorage (in real app, verify with API)
+    const storedUsers = JSON.parse(localStorage.getItem("users") || "{}")
+    const userData = storedUsers[email]
+    
+    if (!userData) {
+      toast({
+        title: "Login Failed",
+        description: "User not found. Please sign up first.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Verify password (in real app, hash and verify)
+    if (userData.password !== password) {
+      toast({
+        title: "Login Failed",
+        description: "Incorrect password.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    login(email, userData.role, userData.name)
+
     toast({
       title: "Login Successful",
-      description: "You can buy now products.",
+      description: `Welcome back, ${userData.name || email}!`,
     })
-    
-    // Redirect to original page or home
+
+    // Execute pending action if exists
+    try {
+      const pendingRaw = localStorage.getItem("pendingAction")
+      if (pendingRaw) {
+        const pending = JSON.parse(pendingRaw) as
+          | { type: "add-to-cart"; product: any }
+          | { type: "buy-now"; product: any }
+
+        localStorage.removeItem("pendingAction")
+
+        if (pending.type === "add-to-cart") {
+          addToCart(pending.product)
+          toast({
+            title: "Added to cart",
+            description: `${pending.product.name} has been added to your cart.`,
+          })
+          navigate("/cart")
+          return
+        }
+        if (pending.type === "buy-now") {
+          setBuyNowProduct({
+            id: pending.product.id,
+            name: pending.product.name,
+            price: pending.product.price,
+            image: pending.product.image,
+          })
+          navigate(`/buy-now?id=${pending.product.id}`)
+          return
+        }
+      }
+    } catch (e) {
+      // fall through to normal redirect
+      console.error("Failed to handle pending action after login", e)
+    }
+
+    // Redirect based on role or query if no pending action
     const redirect = searchParams.get("redirect")
-    navigate(redirect || "/")
+    if (redirect) {
+      navigate(redirect)
+    } else if (userData.role === "seller") {
+      navigate("/seller/dashboard")
+    } else {
+      navigate("/")
+    }
   }
 
   return (

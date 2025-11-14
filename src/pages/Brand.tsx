@@ -9,9 +9,10 @@ import { useBuyNow } from "@/contexts/buy-now-context"
 import { useToast } from "@/hooks/use-toast"
 import { LoginModal } from "@/components/login-modal"
 import { useState } from "react"
+import { getProductsByBrand, getAllProducts } from "@/data/products"
 
 type Product = {
-  id: number
+  id: string
   name: string
   price: number
   image: string
@@ -19,86 +20,37 @@ type Product = {
   reviews: number
 }
 
-const brandProducts: Record<string, Product[]> = {
-  zara: Array.from({ length: 12 }, (_, i) => ({
-    id: 1001 + i,
-    name: `Zara ${["Classic", "Modern", "Elegant", "Trendy"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 200) + 30,
-    image: `/placeholder.svg?height=250&width=250&query=zara ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 500) + 20,
-  })),
-  dg: Array.from({ length: 12 }, (_, i) => ({
-    id: 1101 + i,
-    name: `D&G ${["Luxury", "Premium", "Designer", "Exclusive"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 500) + 200,
-    image: `/placeholder.svg?height=250&width=250&query=dg ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 300) + 10,
-  })),
-  hm: Array.from({ length: 12 }, (_, i) => ({
-    id: 1201 + i,
-    name: `H&M ${["Casual", "Street", "Urban", "Style"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 100) + 20,
-    image: `/placeholder.svg?height=250&width=250&query=hm ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 500) + 20,
-  })),
-  chanel: Array.from({ length: 12 }, (_, i) => ({
-    id: 1301 + i,
-    name: `Chanel ${["Classic", "Timeless", "Elegant", "Luxury"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 1000) + 500,
-    image: `/placeholder.svg?height=250&width=250&query=chanel ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 200) + 10,
-  })),
-  prada: Array.from({ length: 12 }, (_, i) => ({
-    id: 1401 + i,
-    name: `Prada ${["Designer", "Luxury", "Premium", "Exclusive"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 800) + 400,
-    image: `/placeholder.svg?height=250&width=250&query=prada ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 250) + 10,
-  })),
-  biba: Array.from({ length: 12 }, (_, i) => ({
-    id: 1501 + i,
-    name: `Biba ${["Fashion", "Trendy", "Modern", "Style"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 150) + 40,
-    image: `/placeholder.svg?height=250&width=250&query=biba ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 400) + 20,
-  })),
-  adidas: Array.from({ length: 12 }, (_, i) => ({
-    id: 2001 + i,
-    name: `Adidas ${["Samba", "Stan Smith", "Ultra Boost", "NMD"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 150) + 50,
-    image: `/placeholder.svg?height=250&width=250&query=adidas shoes ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 500) + 20,
-  })),
-  nike: Array.from({ length: 12 }, (_, i) => ({
-    id: 3001 + i,
-    name: `Nike ${["Air Force 1", "Jordan 1", "Dunk", "Air Max"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 150) + 60,
-    image: `/placeholder.svg?height=250&width=250&query=nike shoes ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 500) + 20,
-  })),
-  dior: Array.from({ length: 12 }, (_, i) => ({
-    id: 4001 + i,
-    name: `Dior ${["Saddle", "Book Tote", "Caro", "Bobby"][i % 4]} ${i + 1}`,
-    price: Math.floor(Math.random() * 300) + 200,
-    image: `/placeholder.svg?height=250&width=250&query=dior luxury ${i}`,
-    rating: Math.floor(Math.random() * 5) + 1,
-    reviews: Math.floor(Math.random() * 300) + 10,
-  })),
-}
-
 export default function BrandPage() {
   const { name } = useParams<{ name: string }>()
-  const key = name?.toLowerCase() || ""
-  const products = brandProducts[key] ?? []
-  const brandName = key.toUpperCase()
+  const rawName = name || ""
+ 
+  const key = rawName.toLowerCase().replace(/[^a-z0-9]/g, "")
+  const brandProducts = key ? getProductsByBrand(key) : getAllProducts()
+
+  // Defensive mapping: if something throws while mapping products, catch and
+  // surface a friendly message instead of letting the whole page crash to a blank screen.
+  let products: Product[] = []
+  let renderError: string | null = null
+  try {
+    products = brandProducts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      image: p.image,
+      rating: p.rating,
+      reviews: p.reviews,
+    }))
+  } catch (err: any) {
+    console.error("Error mapping brand products:", err)
+    renderError = err?.message || String(err)
+    products = []
+  }
+  // Build a readable display name from the raw param (preserve &, spaces for UX if present)
+  const brandName = rawName
+    .replace(/-/g, " ")
+    .split(" ")
+    .map((w) => (w.length ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ") || key.toUpperCase()
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
   const { addToCart } = useCart()
@@ -116,7 +68,7 @@ export default function BrandPage() {
       return
     }
     setBuyNowProduct({
-      id: product.id.toString(),
+      id: product.id,
       name: product.name,
       price: product.price,
       image: product.image,
@@ -132,7 +84,7 @@ export default function BrandPage() {
       return
     }
     addToCart({
-      id: product.id.toString(),
+      id: product.id,
       name: product.name,
       price: product.price,
       image: product.image,
@@ -145,26 +97,22 @@ export default function BrandPage() {
 
   const handleLoginConfirm = () => {
     setShowLoginModal(false)
-    if (selectedProduct) {
-      if (actionType === "buy-now") {
-        setBuyNowProduct({
-          id: selectedProduct.id.toString(),
-          name: selectedProduct.name,
-          price: selectedProduct.price,
-          image: selectedProduct.image,
-        })
-        navigate(`/buy-now?id=${selectedProduct.id}`)
-      } else if (actionType === "add-to-cart") {
-        addToCart({
-          id: selectedProduct.id.toString(),
-          name: selectedProduct.name,
-          price: selectedProduct.price,
-          image: selectedProduct.image,
-        })
-        toast({
-          title: "Added to Cart",
-          description: `${selectedProduct.name} added to cart.`,
-        })
+    if (selectedProduct && actionType) {
+      try {
+        localStorage.setItem(
+          "pendingAction",
+          JSON.stringify({
+            type: actionType,
+            product: {
+              id: selectedProduct.id,
+              name: selectedProduct.name,
+              price: selectedProduct.price,
+              image: selectedProduct.image,
+            },
+          }),
+        )
+      } catch (e) {
+        console.error("Failed to persist pending action", e)
       }
     }
   }
@@ -184,8 +132,9 @@ export default function BrandPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-2">{brandName}</h1>
         <p className="text-gray-600 mb-8">Explore our exclusive {brandName} collection</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((p) => (
+        {products.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.map((p) => (
             <div key={p.id} className="group">
               <Link to={`/product/${p.id}`} className="block">
                 <div className="bg-gray-100 rounded-lg aspect-square mb-3 overflow-hidden">
@@ -200,13 +149,11 @@ export default function BrandPage() {
                 </h3>
                 <div className="flex items-center gap-1 my-1">
                   <div className="flex gap-0.5">
-                    {Array(Math.max(0, Math.min(5, p.rating)))
-                      .fill(0)
-                      .map((_, i) => (
-                        <span key={i} className="text-yellow-400 text-xs">
-                          ★
-                        </span>
-                      ))}
+                    {Array.from({
+                      length: Math.max(0, Math.min(5, Math.round(p.rating))),
+                    }).map((_, i) => (
+                      <span key={i} className="text-yellow-400 text-xs">★</span>
+                    ))}
                   </div>
                   <span className="text-xs text-gray-500">({p.reviews})</span>
                 </div>
@@ -234,8 +181,14 @@ export default function BrandPage() {
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">No products found for {brandName} brand.</p>
+            <p className="text-gray-500 mt-2">Please check back later or browse other brands.</p>
+          </div>
+        )}
       </div>
       <LiteFooter />
     </main>

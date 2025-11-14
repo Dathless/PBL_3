@@ -5,79 +5,24 @@ import { Link, useNavigate } from "react-router-dom"
 import { ShoppingCart } from "lucide-react"
 import { useBuyNow } from "@/contexts/buy-now-context"
 import { AddToCartModal } from "@/components/add-to-cart-modal"
+import { getAllProducts } from "@/data/products"
 
 interface Product {
-  id: number
+  id: string
   name: string
   image: string
-  price: string | number
+  price: number
   badge?: string
 }
 
-const products: Product[] = [
-  {
-    id: 1,
-    name: "BALENCIAGA WOMENS 150 ML BAG YELLOW & FRONT CLIP",
-    image: "/balenciaga-bag.jpg",
-    price: "SAR 1200",
-    badge: "SALE",
-  },
-  {
-    id: 2,
-    name: "GUCCI SLING WOMEN WITH 100+ GOLD CHAIN BELT",
-    image: "/gucci-chain-belt.jpg",
-    price: "SAR 5800",
-  },
-  {
-    id: 3,
-    name: "DIOR WOMENS WOMEN WITH 100 GULL CHAIN BELT",
-    image: "/dior-womens-belt.jpg",
-    price: "SAR 3400",
-    badge: "ON SALE",
-  },
-  {
-    id: 4,
-    name: "GUCCI SLING CLUTCH WOMEN WITH CHAIN",
-    image: "/gucci-clutch.jpg",
-    price: "SAR 6200",
-  },
-  {
-    id: 5,
-    name: "NIKE AIR FORCE 1 LOW",
-    image: "/nike-air-force-sneakers.jpg",
-    price: "SAR 850",
-  },
-  {
-    id: 6,
-    name: "DIOR CHIC SADDLE WITH ENAMEL",
-    image: "/placeholder.svg?height=150&width=150",
-    price: "SAR 2800",
-  },
-  {
-    id: 7,
-    name: "GUCCI GG BAG DOUBLE WITH BAG",
-    image: "/placeholder.svg?height=150&width=150",
-    price: "SAR 4900",
-  },
-  {
-    id: 8,
-    name: "NIKE AIR JORDAN 1 LOW",
-    image: "/placeholder.svg?height=150&width=150",
-    price: "SAR 1200",
-  },
-  {
-    id: 9,
-    name: "GUCCI GG MARMONT LEATHER QUILTED JACKET",
-    image: "/placeholder.svg?height=150&width=150",
-    price: "SAR 8900",
-  },
-  {
-    id: 10,
-    name: "DIOR BAG SADDLE QUILTED",
-    image: "/placeholder.svg?height=150&width=150",
-    price: "SAR 5200",
-  },
-]
+// Get all products from database
+const products: Product[] = getAllProducts().map((p, index) => ({
+  id: p.id,
+  name: p.name,
+  image: p.image,
+  price: p.price,
+  badge: index < 2 ? "SALE" : index === 2 ? "ON SALE" : undefined,
+}))
 
 export function FrequentlyBought() {
   const navigate = useNavigate()
@@ -86,13 +31,10 @@ export function FrequentlyBought() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleBuy = (product: Product) => {
-    const price = typeof product.price === 'string' 
-      ? parseInt(product.price.replace("SAR ", "").replace(",", ""))
-      : product.price
     setBuyNowProduct({
-      id: product.id.toString(),
+      id: product.id,
       name: product.name,
-      price: price,
+      price: product.price,
       image: product.image,
     })
     navigate(`/buy-now?id=${product.id}`)
@@ -100,14 +42,11 @@ export function FrequentlyBought() {
 
   const handleAddToCart = (product: Product, e: React.MouseEvent) => {
     e.preventDefault()
-    const price = typeof product.price === 'string' 
-      ? parseInt(product.price.replace("SAR ", "").replace(",", ""))
-      : product.price
     setSelectedProduct({
       id: product.id,
       name: product.name,
       image: product.image,
-      price: price,
+      price: product.price,
     })
     setIsModalOpen(true)
   }
@@ -146,7 +85,7 @@ export function FrequentlyBought() {
                 <Link to={`/product/${product.id}`}>
                   <h3 className="font-bold text-xs text-gray-900 line-clamp-2 mb-2 hover:text-cyan-600 transition">{product.name}</h3>
                 </Link>
-                <p className="text-sm font-bold text-cyan-600 mb-2">{product.price}</p>
+                <p className="text-sm font-bold text-cyan-600 mb-2">${product.price}</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={(e) => {
@@ -181,7 +120,7 @@ export function FrequentlyBought() {
         product={selectedProduct ? {
           id: selectedProduct.id,
           name: selectedProduct.name,
-          price: typeof selectedProduct.price === 'number' ? selectedProduct.price : parseInt(selectedProduct.price.replace("SAR ", "").replace(",", "")),
+          price: selectedProduct.price,
           image: selectedProduct.image,
         } : null}
       />

@@ -8,19 +8,19 @@ const slides = [
     title: "LATEST NIKE SHOES",
     subtitle: "UP TO 80% OFF",
     description: "Best Deals Online for Genuine Products",
-    image: "/white-nike-shoes.jpg",
+    image: "/nike-dau-trang.png",
   },
   {
     title: "ADIDAS COLLECTION",
     subtitle: "UP TO 70% OFF",
     description: "Premium Sports Gear at Unbeatable Prices",
-    image: "/adidas-samba-white-shoes.jpg",
+    image: "/mu-adidas-dau-trang.png",
   },
   {
     title: "DIOR LUXURY",
     subtitle: "UP TO 60% OFF",
     description: "Exclusive Designer Items",
-    image: "/dior-fashion-brand.jpg",
+    image: "/dior-dau-trang.png",
   },
 ]
 

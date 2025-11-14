@@ -163,7 +163,7 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [actionType, setActionType] = useState<"add-to-cart" | "buy-now" | null>(null)
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { addToCart } = useCart()
   const { setBuyNowProduct } = useBuyNow()
   const navigate = useNavigate()
@@ -195,6 +195,10 @@ export default function ProductPage() {
     }))
 
   const handleAddToCart = () => {
+    if (user?.role === "seller") {
+      toast({ title: "Not allowed", description: "Seller accounts cannot add items to cart.", variant: "destructive" })
+      return
+    }
     if (!isAuthenticated) {
       setActionType("add-to-cart")
       setShowLoginModal(true)
@@ -215,6 +219,10 @@ export default function ProductPage() {
   }
 
   const handleBuyNow = () => {
+    if (user?.role === "seller") {
+      toast({ title: "Not allowed", description: "Seller accounts cannot purchase.", variant: "destructive" })
+      return
+    }
     if (!isAuthenticated) {
       setActionType("buy-now")
       setShowLoginModal(true)
@@ -232,28 +240,30 @@ export default function ProductPage() {
 
   const handleLoginConfirm = () => {
     setShowLoginModal(false)
-    // After login, perform the action
-    if (actionType === "buy-now") {
-      setBuyNowProduct({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-      })
-      navigate(`/buy-now?id=${product.id}`)
-    } else if (actionType === "add-to-cart") {
-      addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        color: selectedColor,
-        size: selectedSize,
-      })
-      toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart.`,
-      })
+    if (!actionType) return
+    try {
+      const payload =
+        actionType === "add-to-cart"
+          ? {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              image: product.image,
+              color: selectedColor,
+              size: selectedSize,
+            }
+          : {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              image: product.image,
+            }
+      localStorage.setItem(
+        "pendingAction",
+        JSON.stringify({ type: actionType, product: payload })
+      )
+    } catch (e) {
+      console.error("Failed to persist pending action", e)
     }
   }
 

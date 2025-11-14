@@ -6,9 +6,10 @@ import { Link, useNavigate } from "react-router-dom"
 import { ShoppingCart } from "lucide-react"
 import { useBuyNow } from "@/contexts/buy-now-context"
 import { AddToCartModal } from "@/components/add-to-cart-modal"
+import { getAllProducts } from "@/data/products"
 
 interface Product {
-  id: number
+  id: string
   name: string
   image: string
   price: number
@@ -23,72 +24,15 @@ interface TimeLeft {
   seconds: number
 }
 
-const flashSaleProducts: Product[] = [
-  {
-    id: 4,
-    name: "LONG-SLEEVED BLOUSE",
-    image: "/long-sleeved-blouse.jpg",
-    price: 45,
-    originalPrice: 75,
-    discount: 40,
-  },
-  {
-    id: 5,
-    name: "ROLEX DAY-DATE 40",
-    image: "/rolex-daydate-watch.jpg",
-    price: 35000,
-    originalPrice: 45000,
-    discount: 22,
-  },
-  {
-    id: 6,
-    name: "DIOR APRES-SKI BOOT",
-    image: "/dior-ski-boot.jpg",
-    price: 1200,
-    originalPrice: 1800,
-    discount: 33,
-  },
-  {
-    id: 7,
-    name: "BALENCIAGA WOMENS BAG",
-    image: "/balenciaga-bag.jpg",
-    price: 1800,
-    originalPrice: 2500,
-    discount: 28,
-  },
-  {
-    id: 8,
-    name: "GUCCI CHAIN BELT",
-    image: "/gucci-chain-belt.jpg",
-    price: 650,
-    originalPrice: 950,
-    discount: 32,
-  },
-  {
-    id: 3,
-    name: "DIOR WOMENS BELT WITH CHAIN",
-    image: "/dior-womens-belt.jpg",
-    price: 3400,
-    originalPrice: 5000,
-    discount: 32,
-  },
-  {
-    id: 9,
-    name: "GUCCI SLING CLUTCH WOMEN WITH CHAIN",
-    image: "/gucci-clutch.jpg",
-    price: 6200,
-    originalPrice: 9000,
-    discount: 31,
-  },
-  {
-    id: 10,
-    name: "DIOR BAG SADDLE QUILTED",
-    image: "/dior-saddle-bag.jpg",
-    price: 5200,
-    originalPrice: 7500,
-    discount: 31,
-  },
-]
+// Get all products from database (excluding first 2)
+const flashSaleProducts: Product[] = getAllProducts().slice(2).map(p => ({
+  id: p.id,
+  name: p.name,
+  image: p.image,
+  price: p.price,
+  originalPrice: p.originalPrice,
+  discount: p.discount,
+}))
 
 export default function OffersPage() {
   const navigate = useNavigate()
@@ -134,7 +78,7 @@ export default function OffersPage() {
 
   const handleBuy = (product: Product) => {
     setBuyNowProduct({
-      id: product.id.toString(),
+      id: product.id,
       name: product.name,
       price: product.price,
       image: product.image,
@@ -215,8 +159,8 @@ export default function OffersPage() {
                   </h3>
                 </Link>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-red-600 font-bold text-lg">SAR {product.price.toLocaleString()}</span>
-                  <span className="text-gray-400 line-through text-sm">SAR {product.originalPrice.toLocaleString()}</span>
+                  <span className="text-red-600 font-bold text-lg">${product.price.toLocaleString()}</span>
+                  <span className="text-gray-400 line-through text-sm">${product.originalPrice.toLocaleString()}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button

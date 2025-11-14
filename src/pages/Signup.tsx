@@ -3,33 +3,51 @@ import type React from "react"
 import { TopBanner } from "@/components/top-banner"
 import { Header } from "@/components/lite-header"
 import { LiteFooter } from "@/components/lite-footer"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuth, UserRole } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 
 export default function SignupPage() {
+  const { type } = useParams<{ type: string }>()
+  const role: UserRole = type === "seller" ? "seller" : "buyer"
   const [showPassword, setShowPassword] = useState(false)
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [phone, setPhone] = useState("")
+  const [address, setAddress] = useState("")
+  const [businessName, setBusinessName] = useState("")
+  const [taxId, setTaxId] = useState("")
   const navigate = useNavigate()
   const { login } = useAuth()
   const { toast } = useToast()
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate signup - in real app, you'd call an API
-    login(email)
     
-    // Show success toast
+    // Save user data to localStorage (in real app, send to API)
+    const storedUsers = JSON.parse(localStorage.getItem("users") || "{}")
+    storedUsers[email] = {
+      email,
+      password, // In real app, hash this
+      role,
+      name: fullName,
+      phone,
+      address,
+      ...(role === "seller" && { businessName, taxId })
+    }
+    localStorage.setItem("users", JSON.stringify(storedUsers))
+    
+    login(email, role, fullName)
+    
     toast({
-      title: "Sign up successful!",
-      description: "Your account has been created. You can start shopping now.",
+      title: "Registration successful!",
+      description: `Your ${role} account has been created. Please login to continue.`,
     })
     
-    navigate("/")
+    navigate(`/login?role=${role}&email=${email}`)
   }
 
   return (
@@ -45,8 +63,14 @@ export default function SignupPage() {
         </div>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Create an Account</h1>
-          <p className="text-gray-600">Let's create your account</p>
+          <h1 className="text-3xl font-bold mb-2">
+            {role === "seller" ? "Seller Registration" : "Create an Account"}
+          </h1>
+          <p className="text-gray-600">
+            {role === "seller" 
+              ? "Register as a seller to start selling" 
+              : "Let's create your account"}
+          </p>
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4 mb-6">
@@ -95,11 +119,63 @@ export default function SignupPage() {
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">Phone</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter your phone number"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-cyan-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">Address</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Enter your address"
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-cyan-500"
+              required
+            />
+          </div>
+
+          {role === "seller" && (
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Business Name</label>
+                <input
+                  type="text"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="Enter your business name"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-cyan-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Tax ID</label>
+                <input
+                  type="text"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  placeholder="Enter your tax ID"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-cyan-500"
+                  required
+                />
+              </div>
+            </>
+          )}
+
           <button
             type="submit"
             className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition"
           >
-            Sign up
+            Sign up as {role === "seller" ? "Seller" : "Buyer"}
           </button>
         </form>
 

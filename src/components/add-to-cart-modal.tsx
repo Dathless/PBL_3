@@ -73,7 +73,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
   const [selectedColor, setSelectedColor] = useState<string>("")
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { addToCart } = useCart()
   const { toast } = useToast()
 
@@ -96,6 +96,10 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
   }, [isOpen, product, productData])
 
   const handleAddToCart = () => {
+    if (user?.role === "seller") {
+      toast({ title: "Not allowed", description: "Seller accounts cannot add items to cart.", variant: "destructive" })
+      return
+    }
     if (!isAuthenticated) {
       setShowLoginModal(true)
       return
@@ -105,7 +109,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
 
     if (!selectedColor || !selectedSize) {
       toast({
-        title: "Please select",
+        title: "Please choose options",
         description: "Please select color and size.",
         variant: "destructive",
       })
@@ -145,7 +149,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-bold">Add to Cart</h2>
+            <h2 className="text-lg font-bold">Added to cart </h2>
             <button
               onClick={onClose}
               className="p-1 hover:bg-gray-100 rounded-full transition"
@@ -222,7 +226,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
               onClick={handleAddToCart}
               className="w-full bg-cyan-600 text-white py-3 rounded-lg font-semibold hover:bg-cyan-700 transition"
             >
-              Add to Cart
+              Added to cart 
             </button>
           </div>
         </div>
