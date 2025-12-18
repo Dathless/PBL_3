@@ -28,6 +28,11 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    private String brand;
+    private BigDecimal discount;
+    private BigDecimal rating;
+    private int reviews;
+
     private BigDecimal price;
     private int stock;
     private String size;
@@ -39,6 +44,10 @@ public class Product {
     @ManyToOne
     @JoinColumn(name = "category_id")
     private Category category;
+
+    @ManyToOne
+    @JoinColumn(name = "seller_id")
+    private User seller;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductImage> images;

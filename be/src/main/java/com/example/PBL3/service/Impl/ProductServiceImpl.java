@@ -1,24 +1,30 @@
 package com.example.PBL3.service.Impl;
 
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.PBL3.dto.ProductDTO;
 import com.example.PBL3.dto.ProductImageDTO;
-import com.example.PBL3.model.*;
+import com.example.PBL3.model.Category;
+import com.example.PBL3.model.Product;
+import com.example.PBL3.model.ProductImage;
+import com.example.PBL3.model.User;
 import com.example.PBL3.repository.CategoryRepository;
 import com.example.PBL3.repository.ProductImageRepository;
 import com.example.PBL3.repository.ProductRepository;
+import com.example.PBL3.repository.UserRepository;
 import com.example.PBL3.service.ProductService;
 import com.example.PBL3.util.MapperUtil;
 
-import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
@@ -29,6 +35,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepo;
     private final CategoryRepository categoryRepo;
     private final ProductImageRepository imageRepo;
+    private final UserRepository userRepo;
     private final MapperUtil mapperUtil = new MapperUtil();
 
 
@@ -48,8 +55,10 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO create(ProductDTO dto) {
         Category category = categoryRepo.findById(dto.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category not found"));
-
+        User seller = userRepo.findById(dto.getSellerId())
+                .orElseThrow(() -> new EntityNotFoundException("Seller not found"));
         Product product = mapperUtil.toProduct(dto, category);
+        product.setSeller(seller);
         product = productRepo.save(product);
 
         List<ProductImage> imgs = new ArrayList<>();
@@ -103,6 +112,41 @@ public class ProductServiceImpl implements ProductService {
                 .filter(product -> minPrice == null || product.getPrice().compareTo(minPrice) >= 0)
                 .filter(product -> maxPrice == null || product.getPrice().compareTo(maxPrice) <= 0)
                 .filter(product -> ids == null || ids.isEmpty() || ids.contains(product.getId()))
+                .map(mapperUtil::toProductDTO)
+                .collect(Collectors.toList());
+    }
+    @Override
+    public void SetSellerId(UUID id, UUID sellerId) {
+        Product product = productRepo.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+        if (product.getSeller() != null) throw new IllegalArgumentException("Product already has a seller");
+        User seller = userRepo.findById(sellerId)
+            .orElseThrow(() -> new EntityNotFoundException("Seller not found"));
+        product.setSeller(seller);
+        productRepo.save(product);
+    }
+
+    @Override
+    public List<ProductDTO> getByCategoryName(String categoryName) {
+        return productRepo.findAll().stream()
+                .filter(product -> product.getCategory() != null && 
+                                   product.getCategory().getName().equalsIgnoreCase(categoryName))
+                .map(mapperUtil::toProductDTO)
+                .collect(Collectors.toList());
+    }
+    @Override
+    public List<ProductDTO> getBySellerId(UUID sellerId) {
+        return productRepo.findAll().stream()
+                .filter(product -> product.getSeller() != null && 
+                                   product.getSeller().getId().equals(sellerId))
+                .map(mapperUtil::toProductDTO)
+                .collect(Collectors.toList());
+    }
+    @Override
+    public List<ProductDTO> getByBrand(String brand) {
+        return productRepo.findAll().stream()
+                .filter(product -> product.getBrand() != null && 
+                                   product.getBrand().equalsIgnoreCase(brand))
                 .map(mapperUtil::toProductDTO)
                 .collect(Collectors.toList());
     }

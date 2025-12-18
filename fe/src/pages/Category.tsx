@@ -15,7 +15,18 @@ const categoryData: Record<string, { name: string }> = {
   shoes: { name: "Shoes" },
   watches: { name: "Watches" },
   bag: { name: "Bag" },
-  accessories: { name: "Accessories" },
+  accessory: { name: "Accessories" },
+}
+
+
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  image: string
+  originalPrice: number 
+  discount: number 
 }
 
 export default function CategoryPage() {
@@ -42,19 +53,24 @@ export default function CategoryPage() {
     const loadProducts = async () => {
       try {
         setLoading(true)
-        const allProducts = await productApi.getAll()
-        // Use the single product from DB
-        const products = allProducts.slice(0, 1).map(p => ({
+        // 🛠️ SỬA: Dùng API mới để lấy sản phẩm theo tên danh mục
+        const fetchedProducts = await productApi.getByCategoryName(categoryKey);
+        
+        // 🛠️ SỬA: Mapping dữ liệu trả về từ API
+        const products: Product[] = fetchedProducts.map((p: any) => ({
           id: p.id,
           name: p.name,
-          price: Number(p.price),
+          price: Number(p.price) || 0,
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
-          originalPrice: Number(p.price) * 1.3,
-          discount: 23,
+          // Đảm bảo các trường này tồn tại hoặc có giá trị mặc định
+          originalPrice: Number(p.originalPrice) || Number(p.price) * 1.3,
+          discount: Number(p.discount) || 0,
         }))
+        
         setCategoryProducts(products)
       } catch (error) {
         console.error("Error loading products:", error)
+        setCategoryProducts([]) // Đảm bảo clear dữ liệu cũ nếu lỗi
       } finally {
         setLoading(false)
       }

@@ -49,16 +49,18 @@ export function DealsOfDay() {
         setLoading(true)
         const allProducts = await productApi.getAll()
         // Use the single product from DB (repeat it 4 times for display)
-        const productList: Product[] = allProducts.slice(0, 1).map(p => ({
+        const productList: Product[] = allProducts.slice(0, 4).map(p => ({
           id: p.id,
           name: p.name,
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
           price: Number(p.price),
           originalPrice: Number(p.price) * 1.3, // Fake original price
         }))
-        
+        console.log("Product load: ", productList)
         // Repeat the product to fill 4 slots
-        const repeatedProducts = Array(4).fill(productList[0] || null).filter(Boolean) as Product[]
+        const repeatedProducts : Product[] = Array.from({length: 4}).map(
+          (_, index) => productList[index % productList.length]
+        )
         setProducts(repeatedProducts)
         
         // Initialize timers

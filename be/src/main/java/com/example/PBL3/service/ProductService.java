@@ -1,9 +1,11 @@
 package com.example.PBL3.service;
 
-import java.math.*;
-import java.util.*;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
 
 import com.example.PBL3.dto.ProductDTO;
+
 
 public interface ProductService {
     List<ProductDTO> getAll();
@@ -12,4 +14,8 @@ public interface ProductService {
     ProductDTO update(UUID id, ProductDTO dto);
     void delete(UUID id);
     List<ProductDTO> search(String name, BigDecimal minPrice, BigDecimal maxPrice, List<UUID> ids);
+    void SetSellerId(UUID productId, UUID sellerId);
+    List<ProductDTO> getByCategoryName(String categoryName);
+    List<ProductDTO> getBySellerId(UUID sellerId);
+    List<ProductDTO> getByBrand(String brand);
 }

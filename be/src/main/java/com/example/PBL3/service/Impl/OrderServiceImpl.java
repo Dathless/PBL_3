@@ -7,9 +7,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.PBL3.dto.*;
-import com.example.PBL3.model.*;
-import com.example.PBL3.repository.*;
+import com.example.PBL3.dto.OrderDTO;
+import com.example.PBL3.dto.OrderItemDTO;
+import com.example.PBL3.model.Order;
+import com.example.PBL3.model.Product;
+import com.example.PBL3.model.User;
+import com.example.PBL3.repository.OrderRepository;
+import com.example.PBL3.repository.ProductRepository;
+import com.example.PBL3.repository.UserRepository;
 import com.example.PBL3.service.OrderService;
 import com.example.PBL3.util.MapperUtil;
 
@@ -74,7 +79,7 @@ public class OrderServiceImpl implements OrderService {
 		    log.info("Order created successfully with ID: {}", order.getId());
 
 		    return mapperUtil.toOrderDTO(order);
-		} catch (Exception e) {
+		} catch (RuntimeException e) {
 			log.error("Error creating order: ", e);
 			throw new RuntimeException("Failed to create order: " + e.getMessage(), e);
 		}

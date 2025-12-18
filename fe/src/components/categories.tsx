@@ -8,7 +8,7 @@ const categories = [
   { name: "Jacket", icon: Jacket, slug: "jacket" },
   { name: "Pants", icon: Shirt, slug: "pants" },
   { name: "Shoes", icon: Footprints, slug: "shoes" },
-  { name: "Watches", icon: Watch, slug: "watches" },
+  { name: "Watch", icon: Watch, slug: "watch" },
   { name: "Bag", icon: Briefcase, slug: "bag" },
   { name: "Accessories", icon: Ring, slug: "accessories" },
 ]

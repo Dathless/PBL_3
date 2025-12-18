@@ -31,9 +31,11 @@ import com.example.PBL3.model.Product;
 import com.example.PBL3.model.User;
 import com.example.PBL3.model.status.OrderStatus;
 
-@Component
-public class MapperUtil {
+import lombok.RequiredArgsConstructor;
 
+@Component
+@RequiredArgsConstructor
+public class MapperUtil {
 	// ------------  USER -------------------//
     public User toUser(UserDTO userDTO) {
         if (userDTO == null) return null;
@@ -95,12 +97,17 @@ public class MapperUtil {
         dto.setName(entity.getName());
         dto.setDescription(entity.getDescription());
         dto.setPrice(entity.getPrice());
+        dto.setBrand(entity.getBrand());
+        dto.setDiscount(entity.getDiscount());
+        dto.setRating(entity.getRating());
+        dto.setReviews(entity.getReviews());   
         dto.setStock(entity.getStock());
         dto.setSize(entity.getSize());
         dto.setColor(entity.getColor());
         dto.setStatus(entity.getStatus());
         dto.setCategoryId(entity.getCategory() != null ? entity.getCategory().getId() : null);
-
+        dto.setCategoryName(entity.getCategory() != null ? entity.getCategory().getName() : null);
+        dto.setSellerId(entity.getSeller() != null ? entity.getSeller().getId() : null);
         if (entity.getImages() != null) {
             dto.setImages(entity.getImages().stream().map(img ->
                 new ProductImageDTO(img.getId(), img.getImageUrl(), img.getAltText())
@@ -116,11 +123,17 @@ public class MapperUtil {
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());
         product.setPrice(dto.getPrice());
+        product.setBrand(dto.getBrand());
+        product.setDiscount(dto.getDiscount());
+        product.setRating(dto.getRating());
+        product.setReviews(dto.getReviews());
         product.setStock(dto.getStock());
         product.setSize(dto.getSize());
         product.setColor(dto.getColor());
         product.setStatus(dto.getStatus());
         product.setCategory(category);
+
+
         return product;
     }
  // ------------ CATEGORY ---------------//
@@ -208,7 +221,7 @@ public class MapperUtil {
         dto.setTotalAmount(order.getTotalAmount());
         dto.setShippingAddress(order.getShippingAddress());
         dto.setPaymentMethod(order.getPaymentMethod());
-
+        dto.setCustomerName(order.getCustomer().getFullname());
         if (order.getItems() != null) {
             dto.setItems(order.getItems().stream()
                     .map(this::toOrderItemDTO)
@@ -264,7 +277,6 @@ public class MapperUtil {
         return order;
     }
 
-
     // ------------ ORDER ITEM -------------------//
 
     public OrderItemDTO toOrderItemDTO(OrderItem item) {
@@ -272,6 +284,7 @@ public class MapperUtil {
         OrderItemDTO dto = new OrderItemDTO();
         dto.setId(item.getId());
         dto.setProductId(item.getProduct().getId());
+        dto.setProductName(item.getProduct().getName());
         dto.setQuantity(item.getQuantity());
         dto.setPrice(item.getPrice());
         dto.setSelectedColor(item.getSelectedColor());

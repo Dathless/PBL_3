@@ -2,6 +2,7 @@ package com.example.PBL3.service;
 
 import java.util.*;
 
+import com.example.PBL3.dto.OrderForSeller;
 import com.example.PBL3.dto.OrderItemDTO;
 
 public interface OrderItemService {
@@ -9,4 +10,5 @@ public interface OrderItemService {
     List<OrderItemDTO> getItemsByOrderId(UUID orderId);
     OrderItemDTO addItemToOrder(UUID orderId, OrderItemDTO orderItemDTO);
     void deleteOrderItem(Long id);
+    List<OrderForSeller> getOrderForSeller(UUID sellerId);
 }

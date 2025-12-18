@@ -44,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: role as UserRole,
         name: userData.fullname,
       })
+      console.log("id = " + userData.Id)
       setIsAuthenticated(true)
     } catch (error) {
       setIsAuthenticated(false)

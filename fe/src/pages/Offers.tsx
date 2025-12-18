@@ -45,7 +45,7 @@ export default function OffersPage() {
         setLoading(true)
         const allProducts = await productApi.getAll()
         // Use the single product from DB (repeat it for display)
-        const productList = allProducts.slice(0, 1).map(p => ({
+        const productList = allProducts.slice(0, 2).map(p => ({
           id: p.id,
           name: p.name,
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
@@ -53,8 +53,11 @@ export default function OffersPage() {
           originalPrice: Number(p.price) * 1.3,
           discount: 23,
         }))
+        console.log("Product List for Flash Sale:", productList);
         // Repeat the product to fill multiple slots
-        const repeatedProducts = Array(8).fill(productList[0] || null).filter(Boolean) as Product[]
+        const repeatedProducts : Product[] = Array.from({length: 8}).map(
+          (_ , index) => productList[index % productList.length]
+        )
         setFlashSaleProducts(repeatedProducts)
       } catch (error) {
         console.error("Error loading products:", error)

@@ -56,7 +56,15 @@ export default function ProductPage() {
       }
       try {
         setLoading(true)
-        const productData = await productApi.getById(id)
+        const products = await productApi.getAll()
+        console.log("Products: " + JSON.stringify(products))
+        const productData = products.find((p: any) => p.id === id)
+
+        if (!productData) {
+          setProduct(null);
+          setLoading(false);
+          return;
+        }
         
         // Parse size and color from JSON strings
         const sizes = parseJsonArray(productData.size)
@@ -253,24 +261,25 @@ export default function ProductPage() {
               />
             </div>
             {product.images && product.images.length > 0 && (
-              <div className={`grid gap-3 ${product.images.length === 1 ? 'grid-cols-1' : product.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                {product.images.map((img: any, index: number) => (
-                  <div
-                    key={img.id || index}
-                    className="bg-gray-100 rounded-lg aspect-square overflow-hidden cursor-pointer hover:ring-2 ring-cyan-500"
-                    onClick={() => {
-                      // Update main image when clicking thumbnail
-                      const newImage = img.imageUrl || "/placeholder.svg"
-                      setProduct({ ...product, image: newImage })
-                    }}
-                  >
-                    <img
-                      src={img.imageUrl || "/placeholder.svg"}
-                      alt={`${product.name} view ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
+              <div className="mt-4 h-28 overflow-x-auto">
+                <div className="flex gap-3 h-full">
+
+                  {product.images.map((img: any, index: number) => (
+                    <div
+                      key={img.id || index}
+                      className="bg-gray-100 rounded-lg w-28 h-28 overflow-hidden cursor-pointer hover:ring-2 ring-cyan-500 shrink-0"
+                      onClick={() => {
+                        const newImage = img.imageUrl || "/placeholder.svg"
+                        setProduct({ ...product, image: newImage })
+                      }}
+                    >
+                      <img
+                        src={img.imageUrl || "/placeholder.svg"}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

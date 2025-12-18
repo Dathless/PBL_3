@@ -30,6 +30,22 @@ export type Order = {
   cancelledAt?: string
 }
 
+export type OrderForSeller = {
+  orderId : string
+  productId : string
+  productName : string
+  customerId : string
+  customerName : string
+  sellerId : string
+  quantity : number
+  price : number
+  selectedColor : string
+  selectedSize : string
+  status : string
+  orderDate: string
+
+}
+
 export type AnalyticsSummary = {
   revenue: { current: number; previous: number; change: number }
   orders: { current: number; previous: number; change: number }
@@ -171,6 +187,7 @@ export async function deleteProduct(productId: UUID): Promise<void> {
 }
 
 // Orders
+
 export async function getSellerOrders(sellerId: UUID): Promise<Order[]> {
   seedIfEmpty(sellerId)
   return delay(db.orders.filter(o => o.sellerId === sellerId))
@@ -181,6 +198,7 @@ export async function getOrderDetail(orderId: UUID): Promise<Order> {
   if (!order) throw new Error("Order not found")
   return delay(order)
 }
+
 
 // Analytics
 function sum(arr: number[]) { return arr.reduce((a, b) => a + b, 0) }

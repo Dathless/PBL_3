@@ -29,8 +29,9 @@ export function FrequentlyBought() {
       try {
         setLoading(true)
         const allProducts = await productApi.getAll()
+        console.log("All Products:", allProducts);
         // Use the single product from DB (repeat it 5 times for display)
-        const productList: Product[] = allProducts.slice(0, 1).map(p => ({
+        const productList: Product[] = allProducts.slice(0, 5).map(p => ({
           id: p.id,
           name: p.name,
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
@@ -38,10 +39,13 @@ export function FrequentlyBought() {
         }))
         
         // Repeat the product to fill 5 slots
-        const repeatedProducts = Array(5).fill(productList[0] || null).filter(Boolean).map((p, index) => ({
-          ...p,
-          badge: index < 2 ? "SALE" : index === 2 ? "ON SALE" : undefined,
-        })) as Product[]
+        const repeatedProducts : Product[] = Array.from({length: 5}).map((_, index) => {
+          const p = productList[index % productList.length]
+          return {
+            ...p,
+            badge: index < 2 ? "SALE" : index === 2 ? "ON SALE" : undefined
+          }
+        })
         setProducts(repeatedProducts)
       } catch (error) {
         console.error("Error loading products:", error)

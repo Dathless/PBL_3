@@ -1,16 +1,25 @@
 package com.example.PBL3.controller;
 
-import org.springframework.http.ResponseEntity;
-import lombok.*;
-import lombok.extern.slf4j.Slf4j;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
 
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.example.PBL3.dto.ProductDTO;
 import com.example.PBL3.service.ProductService;
 
-import java.math.BigDecimal;
-import java.util.*;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/products")
@@ -41,6 +50,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.update(id, dto));
     }
 
+    @PutMapping("/{productId}/seller/{sellerId}")
+    public ResponseEntity<Void> setSellerId(@PathVariable UUID productId, @PathVariable UUID sellerId) {
+        productService.SetSellerId(productId, sellerId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         productService.delete(id);
@@ -53,5 +68,17 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) List<UUID> ids) {
         return ResponseEntity.ok(productService.search(name, minPrice, maxPrice, ids));
+    }
+    @GetMapping("/category/{categoryName}")
+    public ResponseEntity<List<ProductDTO>> getByCategoryName(@PathVariable String categoryName) {
+        return ResponseEntity.ok(productService.getByCategoryName(categoryName));
+    }
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<List<ProductDTO>> getBySellerId(@PathVariable UUID sellerId) {
+        return ResponseEntity.ok(productService.getBySellerId(sellerId));
+    }
+    @GetMapping("/brand/{brand}")
+    public ResponseEntity<List<ProductDTO>> getByBrand(@PathVariable String brand) {
+        return ResponseEntity.ok(productService.getByBrand(brand));
     }
 }

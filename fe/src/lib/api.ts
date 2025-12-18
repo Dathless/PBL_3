@@ -90,28 +90,35 @@ export const userApi = {
   },
 }
 
+export interface ApiProduct {
+  id: string
+  name: string
+  description: string
+  price: number
+  stock: number
+  size: string
+  color: string
+  status: string
+  categoryId: number
+  categoryName: string
+  sellerId: string
+  images: Array<{ id: number; imageUrl: string; altText?: string }>
+}
 // Product APIs
 export const productApi = {
   getAll: async () => {
-    return apiRequest<Array<{
-      id: string
-      name: string
-      description: string
-      price: number
-      stock: number
-      size: string
-      color: string
-      status: string
-      categoryId: number
-      sellerId: string
-      images: Array<{ id: number; imageUrl: string; altText?: string }>
-    }>>('/products')
+    return apiRequest<ApiProduct[]>('/products')
   },
 
   getById: async (id: string) => {
-    return apiRequest(`/products/${id}`)
+    return apiRequest<ApiProduct>(`/products/${id}`)
   },
-
+  getByCategoryName: async (categoryName: string) => {
+    return apiRequest<ApiProduct[]>(`/products/category/${categoryName}`)
+  },
+  getByBrandName: async (brandName: string) => {
+    return apiRequest<ApiProduct[]>(`/products/brand/${brandName}`)
+  },
   delete: async (id: string) => {
     return apiRequest(`/products/${id}`, { method: 'DELETE' })
   },
@@ -121,6 +128,10 @@ export const productApi = {
     description: string
     price: number
     stock: number
+    brand: string,
+    discount: number,
+    rating: number,
+    reviews: number,
     size: string     // JSON string
     color: string    // JSON string
     status: string
@@ -228,6 +239,43 @@ export const cartApi = {
 }
 
 // Order APIs
+interface OrderForSeller {
+  orderId : string
+  productId : string
+  productName : string
+  customerId : string
+  customerName : string
+  sellerId : string
+  quantity : number
+  price : number
+  selectedColor : string
+  selectedSize : string
+  status : string
+  orderDate: string
+}
+
+interface OrderItem {
+  id: number;
+  productName: string;
+  quantity: number;
+  productId: string;
+  price: number;
+  selectedColor: string;
+  selectedSize: string;
+}
+
+interface OrderDetail {
+  id: string;
+  customerId: string;
+  customerName: string;
+  orderDate: string;
+  status: string;
+  totalAmount: number;
+  shippingAddress: string;
+  paymentMethod: string;
+  items: OrderItem[];
+}
+
 export const orderApi = {
   create: async (orderData: {
     customerId: string
@@ -256,17 +304,11 @@ export const orderApi = {
     })
   },
 
-  getById: async (id: string) => {
-    return apiRequest<{
-      id: string
-      customerId: string
-      orderDate: string
-      status: string
-      totalAmount: number
-      shippingAddress: string
-      paymentMethod: string
-      items: Array<any>
-    }>(`/orders/${id}`)
+  getById: async (orderId: string) => {
+    return apiRequest<OrderDetail>(`/orders/${orderId}`)
+  },
+  getOrdersForSeller: async (sellerId: string) => {
+    return apiRequest<OrderForSeller[]>(`/order-items/seller/${sellerId}`);
   },
 }
 

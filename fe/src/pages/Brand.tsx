@@ -28,17 +28,25 @@ export default function BrandPage() {
 
   // Load products from backend
   useEffect(() => {
+
+    if (!rawName){
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+
     const loadProducts = async () => {
       try {
         setLoading(true)
-        const allProducts = await productApi.getAll()
+        const fetchProducts = await productApi.getByBrandName(rawName);
         // Use the single product from DB
-        const productList = allProducts.slice(0, 1).map(p => ({
+        const productList: Product[] = fetchProducts.map(p => ({
           id: p.id,
           name: p.name,
-          price: Number(p.price),
+          price: Number(p.price), // Đã biết p.price là number nhờ ApiProduct
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
         }))
+
         setProducts(productList)
       } catch (error) {
         console.error("Error loading products:", error)
@@ -48,7 +56,7 @@ export default function BrandPage() {
     }
     
     loadProducts()
-  }, [key])
+  }, [rawName])
   // Build a readable display name from the raw param (preserve &, spaces for UX if present)
   const brandName = rawName
     .replace(/-/g, " ")
@@ -88,7 +96,7 @@ export default function BrandPage() {
       return
     }
     addToCart({
-      id: product.id,
+      productId: product.id,
       name: product.name,
       price: product.price,
       image: product.image,

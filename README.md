@@ -5,6 +5,15 @@
 * **`./fe` (Frontend):** Giao diện người dùng được xây dựng bằng **ReactJS**.
 * **`./be` (Backend):** API cung cấp dữ liệu, được xây dựng bằng **Spring Boot/Java**.
 
+Thông tin hệ thống:
+- **Backend:** [http://localhost:8080](http://localhost:8080)
+- **Frontend:** [http://localhost:3000](http://localhost:3000)
+
+Thông tin Database:
+- **URL:** [jdbc:mysql://localhost:3306/ecommerce_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC]
+- **Username:** root
+- **Password:** Dang2004!
+
 ## 🛠 Yêu cầu hệ thống (Prerequisites)
 
 Để khởi động và phát triển dự án, bạn cần cài đặt các công cụ sau trên máy:
@@ -40,7 +49,7 @@ Frontend sẽ kết nối đến Backend vừa khởi động để lấy dữ l
     ```
 2.  Cài đặt các thư viện phụ thuộc:
     ``` bash
-    npm init
+    npm install
     ```
 3.  Chạy ứng dụng (thường chạy trên cổng **[VD: 3000]**):
     ``` bash

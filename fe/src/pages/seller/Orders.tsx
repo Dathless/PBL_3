@@ -11,6 +11,46 @@ import {
 } from "lucide-react"
 import SellerLayout from "./SellerLayout"
 import { getSellerOrders, getOrderDetail, type Order } from "@/lib/sellerApi"
+import { orderApi } from "@/lib/api"
+import { set } from "date-fns"
+import { formatDate } from "@/lib/utils"
+
+interface OrderForSeller {
+  orderId : string
+  productId : string
+  productName : string
+  customerId : string
+  customerName : string
+  sellerId : string
+  quantity : number
+  price : number
+  selectedColor : string
+  selectedSize : string
+  status : string
+  orderDate: string
+}
+
+interface OrderItem {
+  id: number;
+  productName: string;
+  quantity: number;
+  productId: string;
+  price: number;
+  selectedColor: string;
+  selectedSize: string;
+}
+
+interface OrderDetail {
+  id: string;
+  customerId: string;
+  customerName: string;
+  orderDate: string;
+  status: string;
+  totalAmount: number;
+  shippingAddress: string;
+  paymentMethod: string;
+  items: OrderItem[];
+}
 
 export default function OrdersPage() {
   const { user } = useAuth()
@@ -18,19 +58,26 @@ export default function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [orders, setOrders] = useState<Order[]>([])
+  const [orderSeller, setOrderSeller] = useState<OrderForSeller[]>([])
   const [loading, setLoading] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const sellerId = user?.email || "anonymous-seller"
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<OrderDetail | null>(null)
+  const sellerId = user?.id || "anonymous-seller"
   useEffect(() => {
     let mounted = true
     async function load() {
       if (!sellerId) return
+      console.log("Fetching orders for seller:", sellerId)
       setLoading(true)
       try {
         const data = await getSellerOrders(sellerId)
-        if (mounted) setOrders(data)
+        const res = await orderApi.getOrdersForSeller(sellerId)
+        console.log("Orders for seller:", res)
+        if (mounted) {
+          setOrders(data)
+          setOrderSeller(res)}
       } finally {
         if (mounted) setLoading(false)
       }
@@ -38,6 +85,7 @@ export default function OrdersPage() {
     load()
     return () => { mounted = false }
   }, [sellerId])
+
 
   const filteredOrders = orders.filter(order => {
     const matchesStatus = filterStatus === "all" || order.status === filterStatus
@@ -47,13 +95,15 @@ export default function OrdersPage() {
     return matchesStatus && matchesSearch
   })
 
+  const fetchOrder = orderSeller
+
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "completed":
+      case "delivered":
         return <CheckCircle className="w-4 h-4 text-green-600" />
       case "pending":
         return <Clock className="w-4 h-4 text-yellow-600" />
-      case "shipping":
+      case "shipped":
         return <Truck className="w-4 h-4 text-blue-600" />
       default:
         return <XCircle className="w-4 h-4 text-red-600" />
@@ -62,11 +112,11 @@ export default function OrdersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
+      case "delivered":
         return "bg-green-100 text-green-800"
       case "pending":
         return "bg-yellow-100 text-yellow-800"
-      case "shipping":
+      case "shipped":
         return "bg-blue-100 text-blue-800"
       default:
         return "bg-red-100 text-red-800"
@@ -140,29 +190,31 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {!loading && filteredOrders.length > 0 ? (
-                  filteredOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                      <td className="py-4 px-6 text-sm font-semibold">#{order.id}</td>
-                      <td className="py-4 px-6 text-sm">{order.customer}</td>
-                      <td className="py-4 px-6 text-sm">{order.items.map(i => i.productName).join(", ")}</td>
-                      <td className="py-4 px-6 text-sm">{order.items.reduce((s, i) => s + i.quantity, 0)}</td>
-                      <td className="py-4 px-6 text-sm font-semibold">${order.amount.toLocaleString()}</td>
+                {!loading && fetchOrder.length > 0 ? (
+                  fetchOrder.map((order) => (
+                    <tr key={order.orderId} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                      <td className="py-4 px-6 text-sm font-semibold">#{order.orderId}</td>
+                      <td className="py-4 px-6 text-sm">{order.customerName}</td>
+                      <td className="py-4 px-6 text-sm">{order.productName}</td>
+                      <td className="py-4 px-6 text-sm">{order.quantity}</td>
+                      <td className="py-4 px-6 text-sm font-semibold">${order.price}</td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
-                          {getStatusIcon(order.status)}
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status.toLowerCase())}`}>
+                          {getStatusIcon(order.status.toLowerCase())}
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                       </td>
-                      <td className="py-4 px-6 text-sm text-gray-600">{order.date}</td>
+                      <td className="py-4 px-6 text-sm text-gray-600">{formatDate(order.orderDate)}</td>
                       <td className="py-4 px-6">
                         <button
                           onClick={async () => {
                             setDetailLoading(true)
                             setDetailOpen(true)
                             try {
-                              const data = await getOrderDetail(order.id)
-                              setSelectedOrder(data)
+                              const fetchDetail = await orderApi.getById(order.orderId)
+                              // const data = await getOrderDetail(order.orderId)
+                              console.log("Order detail:", fetchDetail)
+                              setSelectedOrderDetail(fetchDetail)
                             } finally {
                               setDetailLoading(false)
                             }
@@ -209,12 +261,12 @@ export default function OrdersPage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-2xl font-bold">Order Details</h3>
-                  {selectedOrder && (
-                    <p className="text-sm text-gray-600 mt-1">Order ID: #{selectedOrder.id}</p>
+                  {selectedOrderDetail && (
+                    <p className="text-sm text-gray-600 mt-1"><b>Order ID</b>: #{selectedOrderDetail?.id}</p>
                   )}
                 </div>
                 <button
-                  onClick={() => { setDetailOpen(false); setSelectedOrder(null) }}
+                  onClick={() => { setDetailOpen(false); setSelectedOrderDetail(null) }}
                   className="inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition"
                 >
                   ✕
@@ -223,34 +275,34 @@ export default function OrdersPage() {
 
               {detailLoading ? (
                 <div className="py-12 text-center text-gray-500">Loading...</div>
-              ) : selectedOrder ? (
+              ) : selectedOrderDetail ? (
                 <div className="space-y-6">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedOrder.status)}`}>
-                      {getStatusIcon(selectedOrder.status)}
-                      {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedOrderDetail.status.toLowerCase())}`}>
+                      {getStatusIcon(selectedOrderDetail.status.toLowerCase())}
+                      {selectedOrderDetail.status.charAt(0).toUpperCase() + selectedOrderDetail.status.slice(1)}
                     </span>
-                    <span className="text-sm text-gray-600">Placed: {selectedOrder.date}</span>
-                    {selectedOrder.shippedAt && (
-                      <span className="text-sm text-gray-600">Shipped: {selectedOrder.shippedAt}</span>
+                    <span className="text-sm text-gray-600"><b>Ordered at</b>: {formatDate(selectedOrderDetail.orderDate)}</span>
+                    {selectedOrderDetail.shippingAddress && (
+                      <span className="text-sm text-gray-600">, <b>Ship to</b>: {selectedOrderDetail.shippingAddress}</span>
                     )}
-                    {selectedOrder.deliveredAt && (
-                      <span className="text-sm text-gray-600">Delivered: {selectedOrder.deliveredAt}</span>
+                    {selectedOrderDetail.paymentMethod && (
+                      <span className="text-sm text-gray-600">, <b>Payment Method</b>: {selectedOrderDetail.paymentMethod}</span>
                     )}
-                    {selectedOrder.cancelledAt && (
-                      <span className="text-sm text-gray-600">Cancelled: {selectedOrder.cancelledAt}</span>
-                    )}
+                    {/* {selectedOrderDetail.status && (
+                      <span className="text-sm text-gray-600">, Order status: {selectedOrderDetail.status}</span>
+                    )} */}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="font-semibold mb-2">Customer</h4>
-                      <p className="text-sm text-gray-700">{selectedOrder.customer}</p>
+                      <p className="text-sm text-gray-700">{selectedOrderDetail.customerName}</p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="font-semibold mb-2">Summary</h4>
-                      <p className="text-sm text-gray-700">Items: {selectedOrder.items.reduce((s, i) => s + i.quantity, 0)}</p>
-                      <p className="text-sm text-gray-700">Total: ${selectedOrder.amount.toLocaleString()}</p>
+                      <p className="text-sm text-gray-700">Items: {selectedOrderDetail.items.reduce((s, i) => s + i.quantity, 0)}</p>
+                      <p className="text-sm text-gray-700">Total: ${selectedOrderDetail.totalAmount.toLocaleString()}</p>
                     </div>
                   </div>
 
@@ -267,7 +319,7 @@ export default function OrdersPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedOrder.items.map((it, idx) => (
+                          {selectedOrderDetail.items.map((it, idx) => (
                             <tr key={idx} className="border-t">
                               <td className="py-2 px-3">{it.productName}</td>
                               <td className="py-2 px-3">{it.quantity}</td>

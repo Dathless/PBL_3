@@ -22,6 +22,7 @@ interface Product {
   status: string
   size?: string
   color?: string
+  brand?: string
   images?: Array<{ id: number; imageUrl: string; altText?: string }>
 }
 
@@ -34,7 +35,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([])
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ name: "", price: "", stock: "", categoryId: "", description: "", color: "", imageUrl: "" })
+  const [form, setForm] = useState({ name: "", price: "", stock: "", categoryId: "", description: "", brand: "", color: "", imageUrl: "" })
   const [addSizes, setAddSizes] = useState<string[]>([])
   const [addColors, setAddColors] = useState<string[]>([])
   const [editForm, setEditForm] = useState<{ id: string; name: string; price: string; stock: string; categoryId: string; size?: string; color?: string; imageUrl?: string; description?: string } | null>(null)
@@ -71,6 +72,7 @@ export default function ProductsPage() {
   useEffect(() => {
     const loadProducts = async () => {
       if (!user?.id) return
+      else console.log("Loading products for seller id =", user.id)
       setLoading(true)
       try {
         // Get all products
@@ -94,6 +96,7 @@ export default function ProductsPage() {
           status: p.status || "ACTIVE",
           size: p.size,
           color: p.color,
+          brand: p.brand,
           images: p.images || [],
         }))
         setProducts(productList)
@@ -282,10 +285,14 @@ export default function ProductsPage() {
                   }
 
                   try {
+                    //Parse color and size
+                    // const colorInp : string[] = document.getElementById("color-input") ? (document.getElementById("color-input") as HTMLInputElement).value.split(",").map(v => v.trim()).filter(Boolean) : []
+
                     // Create product with backend API
                     const sizeJson = createJsonArray(addSizes)
                     const colorJson = createJsonArray(addColors)
-                    
+                    console.log("Creating product with sizes:", sizeJson, "and colors:", colorJson)
+                    console.log("Seller ID:", user.id)
                     // Format image URL: "/" + filename + extension
                     let imageUrl = form.imageUrl.trim()
                     if (imageUrl && !imageUrl.startsWith("/")) {
@@ -305,14 +312,18 @@ export default function ProductsPage() {
                       description: form.description,
                       price: Number(form.price || 0),
                       stock: Number(form.stock || 0),
+                      brand: form.brand,
+                      discount: 0,
+                      rating: 0,
+                      reviews: 0,
                       size: sizeJson,
                       color: colorJson,
-                      status: "ACTIVE",
+                      status: "AVAILABLE",
                       categoryId: Number(form.categoryId),
                       images: images,
                       sellerId: user.id, // Add seller_id when creating product
                     })
-
+                    console.log("Created product:", newProduct)
                     // Reload products - filter by seller_id
                     const allProducts = await productApi.getAll()
                     const sellerProducts = allProducts.filter((p: any) => {
@@ -326,7 +337,7 @@ export default function ProductsPage() {
                       stock: p.stock,
                       category: "",
                       categoryId: p.categoryId || 0,
-                      status: p.status || "ACTIVE",
+                      status: p.status || "AVAILABLE",
                       size: p.size,
                       color: p.color,
                       images: p.images || [],
@@ -334,7 +345,7 @@ export default function ProductsPage() {
                     setProducts(productList)
 
                     setShowAddModal(false)
-                    setForm({ name: "", price: "", stock: "", categoryId: form.categoryId, description: "", color: "", imageUrl: "" })
+                    setForm({ name: "", price: "", stock: "", categoryId: form.categoryId, description: "",brand: "", color: "", imageUrl: "" })
                     setAddSizes([])
                     setAddColors([])
                     toast({
@@ -342,6 +353,7 @@ export default function ProductsPage() {
                       description: "Product created successfully",
                     })
                   } catch (error: any) {
+                    console.error("Error creating product:", error)
                     toast({
                       title: "Error",
                       description: error.message || "Failed to create product",
@@ -413,9 +425,19 @@ export default function ProductsPage() {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-semibold mb-2">Brand</label>
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500"
+                    placeholder="Enter product's brand"
+                    value={form.brand}
+                    onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-semibold mb-2">Color</label>
                   <input
                     type="text"
+                    id="color-input"
                     className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500"
                     placeholder="Enter colors separated by comma (e.g. red, blue, green)"
                     value={addColors.join(", ")}
@@ -521,7 +543,7 @@ export default function ProductsPage() {
                       stock: Number(editForm.stock || 0),
                       size: sizeJson,
                       color: colorJson,
-                      status: "ACTIVE",
+                      status: "AVAILABLE",
                       categoryId: Number(editForm.categoryId),
                       images: images,
                     })
