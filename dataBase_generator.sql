@@ -95,7 +95,7 @@ CREATE TABLE `categories` (
 
 LOCK TABLES `categories` WRITE;
 /*!40000 ALTER TABLE `categories` DISABLE KEYS */;
-INSERT INTO `categories` VALUES (1,'T-Shirt',NULL),(2,'Shoes',NULL),(3,'Watch',NULL),(4,'Bag',NULL),(5,'Hat',NULL);
+INSERT INTO `categories` VALUES (1,'T-Shirt',NULL),(2,'Shoes',NULL),(3,'Watches',NULL),(4,'Bag',NULL),(5,'Hat',NULL);
 /*!40000 ALTER TABLE `categories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -159,7 +159,7 @@ CREATE TABLE `orders` (
 
 LOCK TABLES `orders` WRITE;
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
-INSERT INTO `orders` VALUES (_binary 'B\ï\Î^QD¥\Ê+\ÑŠ2\ã',_binary '±f\Ý\"OŸ²Y\ÍbH\Ë','2025-11-16 10:24:00','PENDING',450000.00,'123 ABC st, LA, 555555, ','COD'),(_binary 'Â†p=K7ªSp\'þ‰~',_binary '©U†Y9¢NM§ž¼*¸C¨','2025-11-20 11:59:11','PENDING',450000.00,'123 Test St, Test City, 12345, ','COD');
+INSERT INTO `orders` VALUES (_binary 'B\ï\Î^QD¥\Ê+\ÑŠ2\ã',_binary '±f\Ý\"OŸ²Y\ÍbH\Ë','2025-11-16 10:24:00','PENDING',450000.00,'123 ABC st, LA, 555555, ','COD'),(_binary 'Â†p=K7ªSp\'þ‰~',_binary '©U†Y9¢NM§ž¼*¸C¨','2025-11-20 11:59:11','DELIVERED',450000.00,'123 Test St, Test City, 12345, ','COD');
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -262,7 +262,7 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (_binary '†˜Ÿ	]K.…Uy\'cKµv','Nike shoe','Luxury shoe',10000.00,'Nike',0.00,0.00,0,99,'[\"37\",\"38\",\"39\",\"40\",\"41\",\"42\",\"43\"]','[\"white\"]','AVAILABLE',2,_binary ':I[z/DF\ì„½†>ò]7','2025-11-22 07:03:44'),(_binary 'Ÿ­{9v@m¹\Ü`\æzù','Rolex watch','Luxury',10000.00,'Rolex',0.00,0.00,0,100,'[\"Onesize\"]','[\"gold\"]','AVAILABLE',3,_binary ':I[z/DF\ì„½†>ò]7','2025-11-22 05:54:03'),(_binary 'y>4EO-‹yýu]¸`F','Adidas Shoe','Shoe',450000.00,'Adidas',15.00,4.40,200,150,'[\"S\", \"M\", \"L\", \"XL\"]','[\"Black\",\"White\",\"Yellow\"]','AVAILABLE',2,_binary ':I[z/DF\ì„½†>ò]7','2025-11-15 03:19:09'),(_binary '°0^RSJƒ®\×ð¹¹˜{','Dior Bag','Shoe',100000.00,'Dior',0.00,0.00,0,50,'[\"One Size\"]','[\"Black\",\"White\",\"Yellow\"]','AVAILABLE',4,NULL,'2025-11-17 07:15:20'),(_binary '÷\ç\ÑOeŸL¦Á~Qz\\\Z','Adidas Hat','Luxury hat',10000.00,'Adidas',0.00,0.00,0,99,'[\"37\",\"38\",\"39\",\"40\",\"41\",\"42\",\"43\"]','[\"white\"]','AVAILABLE',5,_binary ':I[z/DF\ì„½†>ò]7','2025-11-22 07:58:43');
+INSERT INTO `products` VALUES (_binary '†˜Ÿ	]K.…Uy\'cKµv','Nike shoe','Luxury shoe',10000.00,'Nike',0.00,0.00,0,99,'[\"37\",\"38\",\"39\",\"40\",\"41\",\"42\",\"43\"]','[\"white\",\"black\",\"gray\"]','AVAILABLE',2,_binary ':I[z/DF\ì„½†>ò]7','2025-11-22 07:03:44'),(_binary 'Ÿ­{9v@m¹\Ü`\æzù','Rolex watch','Luxury',10000.00,'Rolex',0.00,0.00,0,100,'[\"Onesize\"]','[\"Golden\",\"Violet\"]','AVAILABLE',3,_binary ':I[z/DF\ì„½†>ò]7','2025-11-22 05:54:03'),(_binary 'y>4EO-‹yýu]¸`F','Adidas Shoe','Shoe',450000.00,'Adidas',15.00,4.40,200,150,'[\"S\", \"M\", \"L\", \"XL\"]','[\"Black\",\"White\",\"Yellow\"]','AVAILABLE',2,_binary ':I[z/DF\ì„½†>ò]7','2025-11-15 03:19:09'),(_binary '°0^RSJƒ®\×ð¹¹˜{','Dior Bag','Shoe',100000.00,'Dior',0.00,0.00,0,50,'[\"One Size\"]','[\"Black\",\"White\",\"Yellow\"]','AVAILABLE',4,NULL,'2025-11-17 07:15:20'),(_binary '÷\ç\ÑOeŸL¦Á~Qz\\\Z','Adidas Hat','Luxury hat',10000.00,'Adidas',0.00,0.00,0,99,'[\"37\",\"38\",\"39\",\"40\",\"41\",\"42\",\"43\"]','[\"white\"]','AVAILABLE',5,_binary ':I[z/DF\ì„½†>ò]7','2025-11-22 07:58:43');
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -311,4 +311,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-11-30  5:40:04
+-- Dump completed on 2025-12-18 14:32:12
