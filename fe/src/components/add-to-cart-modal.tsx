@@ -118,6 +118,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
 
     addToCart({
       id: product.id.toString(),
+      productId: product.id.toString(),
       name: product.name,
       price: product.price,
       image: product.image,

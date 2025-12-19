@@ -53,15 +53,15 @@ public class OrderController {
 		}
 	}
 	@PutMapping("/{id}")
-	public ResponseEntity<OrderDTO> updateOrder(@PathVariable UUID orderId,
+	public ResponseEntity<OrderDTO> updateOrder(@PathVariable UUID id,
 												@RequestBody OrderDTO dto) {
-		OrderDTO updated = orderService.update(orderId, dto);
+		OrderDTO updated = orderService.update(id, dto);
 		return ResponseEntity.ok(updated);
 	}
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity<Void> deleteOrder(@PathVariable UUID orderId){
-		orderService.delete(orderId);
+	public ResponseEntity<Void> deleteOrder(@PathVariable UUID id){
+		orderService.delete(id);
 		return ResponseEntity.noContent().build();
 	}
 

@@ -71,7 +71,7 @@ export default function CartPage() {
                       </button>
                       <span className="px-3 font-semibold">{item.quantity}</span>
                       <button
-                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                        onClick={() => item.cartItemId && handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
                         className="p-1 hover:bg-gray-100 rounded"
                       >
                         <Plus className="w-4 h-4" />

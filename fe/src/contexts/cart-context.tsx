@@ -58,33 +58,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setCartId(cart.id)
         
         // Fetch product details for each item
-        const itemsWithDetails = await Promise.all(
-          cart.items.map(async (item: any) => {
-            try {
-              const product = await productApi.getById(item.productId)
-              const imageUrl = product.images && product.images.length > 0 
-                ? product.images[0].imageUrl 
-                : "/placeholder.svg"
-              
-              return {
-                id: item.productId,
-                productId: item.productId,
-                cartItemId: item.id,
-                name: item.productName || product.name,
-                price: Number(item.price || product.price),
-                quantity: item.quantity,
-                image: imageUrl,
-                color: item.selectedColor || undefined,
-                size: item.selectedSize || undefined,
-              }
-            } catch (error) {
-              console.error("Error loading product:", error)
-              return null
+        const itemsWithDetails: CartItem[] = await Promise.all(
+          cart.items.map(async (item: any): Promise<CartItem> => {
+            const product = await productApi.getById(item.productId)
+        
+            const imageUrl =
+              product.images?.[0]?.imageUrl ?? "/placeholder.svg"
+        
+            return {
+              id: item.productId,
+              productId: item.productId,
+              cartItemId: item.id, // luôn tồn tại
+              name: item.productName || product.name,
+              price: Number(item.price || product.price),
+              quantity: item.quantity,
+              image: imageUrl,
+              color: item.selectedColor ?? undefined,
+              size: item.selectedSize ?? undefined,
             }
           })
         )
         
-        setCartItems(itemsWithDetails.filter((item): item is CartItem => item !== null))
+        setCartItems(itemsWithDetails)
       } catch (error: any) {
         // Cart doesn't exist, create one
         if (error.message?.includes("not found") || error.message?.includes("404")) {
@@ -177,16 +172,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!cartId) return
     
     try {
-      // Remove all items
-      for (const item of cartItems) {
-        if (item.cartItemId) {
-          await cartApi.removeItem(cartId, item.cartItemId)
-        }
-      }
+      // Use clearCart endpoint if available, otherwise remove items one by one
+      await cartApi.clearCart(cartId)
       await refreshCart()
     } catch (error) {
       console.error("Error clearing cart:", error)
-      throw error
+      // If clearCart endpoint fails, try removing items one by one
+      try {
+        for (const item of cartItems) {
+          if (item.cartItemId) {
+            await cartApi.removeItem(cartId, item.cartItemId)
+          }
+        }
+        await refreshCart()
+      } catch (fallbackError) {
+        console.error("Error clearing cart items:", fallbackError)
+        throw fallbackError
+      }
     }
   }
 

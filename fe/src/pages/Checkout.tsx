@@ -130,7 +130,7 @@ export default function CheckoutPage() {
       saveAddress(formData)
       
       // Build shipping address string
-      const shippingAddress = `${formData.address}, ${formData.city}, ${formData.postalCode}, ${formData.country}`
+      const shippingAddress = `${formData.address}, ${formData.city}, ${formData.postalCode}${formData.country ? `, ${formData.country}` : ', Vietnam'}`
 
       // Create order
       const order = await orderApi.create({
@@ -154,7 +154,12 @@ export default function CheckoutPage() {
       })
 
       // Clear cart
-      await clearCart()
+      try {
+        await clearCart()
+      } catch (error: any) {
+        // Log error but don't fail the order if cart clearing fails
+        console.warn("Warning: Failed to clear cart after order placement:", error)
+      }
 
       toast({
         title: "Order placed successfully!",

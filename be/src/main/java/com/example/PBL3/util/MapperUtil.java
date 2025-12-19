@@ -254,7 +254,11 @@ public class MapperUtil {
                         // Ensure price is BigDecimal and not null
                         BigDecimal price = itemDto.getPrice();
                         if (price == null) {
-                            throw new RuntimeException("Price cannot be null for product: " + itemDto.getProductId());
+                            // Try to get price from product if not provided
+                            price = product.getPrice();
+                            if (price == null) {
+                                throw new RuntimeException("Price cannot be null for product: " + itemDto.getProductId());
+                            }
                         }
                         item.setPrice(price);
                         

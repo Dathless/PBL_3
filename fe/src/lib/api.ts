@@ -39,7 +39,32 @@ async function apiRequest<T>(
     throw new Error(error.message || `HTTP error! status: ${response.status}`)
   }
 
-  return response.json()
+  // Handle 204 No Content (empty response) - common for DELETE requests
+  if (response.status === 204) {
+    return null as T
+  }
+
+  // Check if response has content before parsing
+  const contentType = response.headers.get('content-type')
+  const text = await response.text()
+  
+  // If no content or not JSON, return null
+  if (!text || text.trim() === '') {
+    return null as T
+  }
+
+  // If content-type indicates JSON, parse it
+  if (contentType && contentType.includes('application/json')) {
+    try {
+      return JSON.parse(text) as T
+    } catch (e) {
+      // If parsing fails, return null for void responses
+      return null as T
+    }
+  }
+
+  // For non-JSON responses, return null
+  return null as T
 }
 
 // Auth APIs
@@ -233,6 +258,12 @@ export const cartApi = {
 
   removeItem: async (cartId: string, itemId: string) => {
     return apiRequest<void>(`/carts/${cartId}/items/${itemId}`, {
+      method: 'DELETE',
+    })
+  },
+
+  clearCart: async (cartId: string) => {
+    return apiRequest<void>(`/carts/${cartId}/clear`, {
       method: 'DELETE',
     })
   },

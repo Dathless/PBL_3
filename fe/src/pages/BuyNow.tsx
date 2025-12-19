@@ -9,15 +9,18 @@ import { useAuth } from "@/contexts/auth-context"
 import { useBuyNow } from "@/contexts/buy-now-context"
 import { useShipping } from "@/contexts/shipping-context"
 import { useToast } from "@/hooks/use-toast"
+import { orderApi, paymentApi, productApi } from "@/lib/api"
 
 export default function BuyNowPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { getBuyNowProduct } = useBuyNow()
   const { savedAddress, saveAddress } = useShipping()
   const { toast } = useToast()
   const [step, setStep] = useState<"shipping" | "payment" | "confirm">("shipping")
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "EWALLET">("COD")
+  const [isProcessing, setIsProcessing] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     firstName: "",
@@ -29,6 +32,8 @@ export default function BuyNowPage() {
     postalCode: "",
     country: "",
   })
+  const [product, setProduct] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   // Load saved address on mount
   useEffect(() => {
@@ -39,7 +44,45 @@ export default function BuyNowPage() {
 
   // Get product info - only need ID from URL
   const productId = searchParams.get("id")
-  const product = productId ? getBuyNowProduct(productId) : null
+  
+  // Load product from API or context
+  useEffect(() => {
+    const loadProduct = async () => {
+      if (!productId) {
+        setLoading(false)
+        return
+      }
+      try {
+        setLoading(true)
+        // Try to get from context first
+        const contextProduct = getBuyNowProduct(productId)
+        if (contextProduct) {
+          setProduct(contextProduct)
+          setLoading(false)
+          return
+        }
+        // If not in context, fetch from API
+        const productData = await productApi.getById(productId)
+        const imageUrl = productData.images && productData.images.length > 0 
+          ? productData.images[0].imageUrl 
+          : "/placeholder.svg"
+        setProduct({
+          ...productData,
+          image: imageUrl,
+        })
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to load product",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProduct()
+  }, [productId, getBuyNowProduct, toast])
+
   const productName = product?.name || "Product"
   const productPrice = product?.price || 0
   const productImage = product?.image || "/placeholder.svg"
@@ -138,18 +181,86 @@ export default function BuyNowPage() {
     }
   }
 
-  const handlePlaceOrder = () => {
-    // Save address before placing order
-    saveAddress(formData)
-    toast({
-      title: "Order placed successfully!",
-      description: "Thank you for your purchase. Your order is being processed.",
-    })
-    navigate("/order-success")
+  const handlePlaceOrder = async () => {
+    if (!user?.id || !productId || !product) {
+      toast({
+        title: "Error",
+        description: "Cannot place order. Please try again.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsProcessing(true)
+    try {
+      // Save address before placing order
+      saveAddress(formData)
+      
+      // Build shipping address string
+      const shippingAddress = `${formData.address}, ${formData.city}, ${formData.postalCode}, ${formData.country || "Vietnam"}`
+
+      // Create order
+      const order = await orderApi.create({
+        customerId: user.id,
+        shippingAddress,
+        paymentMethod,
+        items: [{
+          productId: productId,
+          quantity: 1,
+          price: Number(productPrice),
+          selectedColor: null,
+          selectedSize: null,
+        }],
+      })
+
+      // Create payment
+      await paymentApi.create({
+        orderId: order.id,
+        amount: total,
+        method: paymentMethod,
+      })
+
+      toast({
+        title: "Order placed successfully!",
+        description: "Your order has been placed and payment has been processed.",
+      })
+
+      navigate("/order-success", { state: { orderId: order.id } })
+    } catch (error: any) {
+      toast({
+        title: "Error placing order",
+        description: error.message || "Failed to place order. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
-  if (!isAuthenticated) {
-    return null
+  if (!isAuthenticated || loading) {
+    return (
+      <main className="min-h-screen bg-white">
+        <TopBanner />
+        <Header />
+        <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+          {loading ? <p>Loading...</p> : null}
+        </div>
+        <LiteFooter />
+      </main>
+    )
+  }
+
+  if (!product) {
+    return (
+      <main className="min-h-screen bg-white">
+        <TopBanner />
+        <Header />
+        <div className="max-w-7xl mx-auto px-4 py-8 text-center">
+          <p>Product not found</p>
+        </div>
+        <LiteFooter />
+      </main>
+    )
   }
 
   return (
@@ -384,29 +495,36 @@ export default function BuyNowPage() {
               <div className="space-y-4">
                 <h2 className="text-xl font-bold mb-6">Payment Method</h2>
                 <div className="space-y-3">
-                  <label className="flex items-center gap-3 border border-cyan-500 rounded-lg p-4 cursor-pointer bg-cyan-50">
-                    <input type="radio" name="payment" defaultChecked className="w-4 h-4" />
-                    <span className="font-semibold">Credit Card</span>
+                  <label className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition ${
+                    paymentMethod === "COD" 
+                      ? "border-cyan-500 bg-cyan-50" 
+                      : "border-gray-300 hover:border-gray-400"
+                  }`}>
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      value="COD"
+                      checked={paymentMethod === "COD"}
+                      onChange={(e) => setPaymentMethod(e.target.value as "COD" | "EWALLET")}
+                      className="w-4 h-4" 
+                    />
+                    <span className="font-semibold">Cash on Delivery (COD)</span>
                   </label>
-                  <label className="flex items-center gap-3 border border-gray-300 rounded-lg p-4 cursor-pointer hover:border-gray-400">
-                    <input type="radio" name="payment" className="w-4 h-4" />
-                    <span className="font-semibold">Debit Card</span>
+                  <label className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition ${
+                    paymentMethod === "EWALLET" 
+                      ? "border-cyan-500 bg-cyan-50" 
+                      : "border-gray-300 hover:border-gray-400"
+                  }`}>
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      value="EWALLET"
+                      checked={paymentMethod === "EWALLET"}
+                      onChange={(e) => setPaymentMethod(e.target.value as "COD" | "EWALLET")}
+                      className="w-4 h-4" 
+                    />
+                    <span className="font-semibold">E-Wallet</span>
                   </label>
-                  <label className="flex items-center gap-3 border border-gray-300 rounded-lg p-4 cursor-pointer hover:border-gray-400">
-                    <input type="radio" name="payment" className="w-4 h-4" />
-                    <span className="font-semibold">PayPal</span>
-                  </label>
-                </div>
-                <div className="pt-4 space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Card Number"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="text" placeholder="MM/YY" className="border border-gray-300 rounded-lg px-4 py-2" />
-                    <input type="text" placeholder="CVV" className="border border-gray-300 rounded-lg px-4 py-2" />
-                  </div>
                 </div>
                 <div className="flex gap-4 pt-4">
                   <button
@@ -452,9 +570,10 @@ export default function BuyNowPage() {
                   </button>
                   <button
                     onClick={handlePlaceOrder}
-                    className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition"
+                    disabled={isProcessing}
+                    className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Place Order
+                    {isProcessing ? "Processing..." : "Place Order"}
                   </button>
                 </div>
               </div>

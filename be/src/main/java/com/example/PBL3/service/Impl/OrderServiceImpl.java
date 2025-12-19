@@ -54,13 +54,27 @@ public class OrderServiceImpl implements OrderService {
 		try {
 			log.info("Creating order for customer: {}", dto.getCustomerId());
 			
+			// Validate input
+			if (dto.getCustomerId() == null) {
+				throw new RuntimeException("Customer ID cannot be null");
+			}
+			
+			if (dto.getItems() == null || dto.getItems().isEmpty()) {
+				throw new RuntimeException("Order must have at least one item");
+			}
+			
 			User customer = userRepository.findById(dto.getCustomerId())
 		            .orElseThrow(() -> new RuntimeException("Customer not found"));
 
 		    // Get all item in order
 		    List<UUID> productIds = dto.getItems().stream()
 		            .map(OrderItemDTO::getProductId)
+		            .filter(id -> id != null)
 		            .toList();
+
+		    if (productIds.isEmpty()) {
+		        throw new RuntimeException("No valid product IDs found in order items");
+		    }
 
 		    log.info("Product IDs: {}", productIds);
 		    
@@ -81,6 +95,9 @@ public class OrderServiceImpl implements OrderService {
 		    return mapperUtil.toOrderDTO(order);
 		} catch (RuntimeException e) {
 			log.error("Error creating order: ", e);
+			throw new RuntimeException("Failed to create order: " + e.getMessage(), e);
+		} catch (Exception e) {
+			log.error("Unexpected error creating order: ", e);
 			throw new RuntimeException("Failed to create order: " + e.getMessage(), e);
 		}
 	}
