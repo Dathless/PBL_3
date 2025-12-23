@@ -47,8 +47,8 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!isAuthenticated) {
       toast({
-        title: "Yêu cầu đăng nhập",
-        description: "Vui lòng đăng nhập để tiếp tục thanh toán.",
+        title: "Login Required",
+        description: "Please log in to continue with checkout.",
         variant: "destructive",
       })
       router.push("/login")

@@ -18,11 +18,16 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
-@Slf4j
 public class CategoryServiceImpl implements CategoryService {
 	private final CategoryRepository categoryRepo;
 	private final MapperUtil mapperUtil;
+
+	private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger(CategoryServiceImpl.class.getName());
+
+	public CategoryServiceImpl(CategoryRepository categoryRepo, MapperUtil mapperUtil) {
+		this.categoryRepo = categoryRepo;
+		this.mapperUtil = mapperUtil;
+	}
 
 
 	@Override

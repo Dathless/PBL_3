@@ -26,14 +26,24 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
-@Slf4j
 public class OrderItemServiceImpl implements OrderItemService {
 	private final OrderItemRepository orderItemRepository;
 	private final OrderRepository orderRepository;
 	private final ProductRepository productRepository;
 	private final UserRepository userRepository;
 	private final MapperUtil mapperUtil;
+
+	private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger(OrderItemServiceImpl.class.getName());
+
+	public OrderItemServiceImpl(OrderItemRepository orderItemRepository, OrderRepository orderRepository,
+							   ProductRepository productRepository, UserRepository userRepository,
+							   MapperUtil mapperUtil) {
+		this.orderItemRepository = orderItemRepository;
+		this.orderRepository = orderRepository;
+		this.productRepository = productRepository;
+		this.userRepository = userRepository;
+		this.mapperUtil = mapperUtil;
+	}
 
 
 	@Override

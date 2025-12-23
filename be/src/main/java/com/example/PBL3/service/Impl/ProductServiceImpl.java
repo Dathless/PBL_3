@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.PBL3.dto.ProductDTO;
 import com.example.PBL3.dto.ProductImageDTO;
+import com.example.PBL3.model.status.ProductStatus;
 import com.example.PBL3.model.Category;
 import com.example.PBL3.model.Product;
 import com.example.PBL3.model.ProductImage;
@@ -28,20 +29,39 @@ import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
-@Slf4j
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepo;
     private final CategoryRepository categoryRepo;
     private final ProductImageRepository imageRepo;
     private final UserRepository userRepo;
+    private final com.example.PBL3.repository.CartItemRepository cartItemRepo;
+    private final com.example.PBL3.repository.OrderItemRepository orderItemRepo;
+    private final com.example.PBL3.repository.ProductRejectionRepository rejectionRepo;
     private final MapperUtil mapperUtil = new MapperUtil();
 
+    private static final java.util.logging.Logger log = java.util.logging.Logger
+            .getLogger(ProductServiceImpl.class.getName());
+
+    public ProductServiceImpl(ProductRepository productRepo, CategoryRepository categoryRepo,
+            ProductImageRepository imageRepo, UserRepository userRepo,
+            com.example.PBL3.repository.CartItemRepository cartItemRepo,
+            com.example.PBL3.repository.OrderItemRepository orderItemRepo,
+            com.example.PBL3.repository.ProductRejectionRepository rejectionRepo) {
+        this.productRepo = productRepo;
+        this.categoryRepo = categoryRepo;
+        this.imageRepo = imageRepo;
+        this.userRepo = userRepo;
+        this.cartItemRepo = cartItemRepo;
+        this.orderItemRepo = orderItemRepo;
+        this.rejectionRepo = rejectionRepo;
+    }
 
     @Override
     public List<ProductDTO> getAll() {
-        return productRepo.findAll().stream().map(mapperUtil::toProductDTO).toList();
+        return productRepo.findAll().stream()
+                .filter(p -> p.getStatus() != ProductStatus.DISCONTINUED)
+                .map(mapperUtil::toProductDTO).toList();
     }
 
     @Override
@@ -53,12 +73,15 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO create(ProductDTO dto) {
-        Category category = categoryRepo.findById(dto.getCategoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Category not found"));
         User seller = userRepo.findById(dto.getSellerId())
                 .orElseThrow(() -> new EntityNotFoundException("Seller not found"));
+
+        Category category = categoryRepo.findById(dto.getCategoryId())
+                .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+
         Product product = mapperUtil.toProduct(dto, category);
         product.setSeller(seller);
+        product.setStatus(ProductStatus.PENDING); // Set default status to PENDING
         product = productRepo.save(product);
 
         List<ProductImage> imgs = new ArrayList<>();
@@ -100,14 +123,33 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void delete(UUID id) {
-        if (!productRepo.existsById(id)) throw new EntityNotFoundException("Product not found");
+        if (!productRepo.existsById(id))
+            throw new EntityNotFoundException("Product not found");
+
+        // If product is in any order, soft delete it
+        if (orderItemRepo.existsByProductId(id)) {
+            Product product = productRepo.findById(id).get();
+            product.setStatus(ProductStatus.DISCONTINUED);
+            productRepo.save(product);
+            return;
+        }
+
+        // If product is in cart, remove it from cart first
+        cartItemRepo.deleteByProductId(id);
+
+        // If product has rejection record, delete it
+        rejectionRepo.findByProductId(id).ifPresent(rejectionRepo::delete);
+
+        // Hard delete
         productRepo.deleteById(id);
     }
+
     @Override
     public List<ProductDTO> search(String name, BigDecimal minPrice, BigDecimal maxPrice, List<UUID> ids) {
         List<Product> products = productRepo.findAll();
 
         return products.stream()
+                .filter(product -> product.getStatus() != ProductStatus.DISCONTINUED)
                 .filter(product -> name == null || product.getName().toLowerCase().contains(name.toLowerCase()))
                 .filter(product -> minPrice == null || product.getPrice().compareTo(minPrice) >= 0)
                 .filter(product -> maxPrice == null || product.getPrice().compareTo(maxPrice) <= 0)
@@ -115,13 +157,15 @@ public class ProductServiceImpl implements ProductService {
                 .map(mapperUtil::toProductDTO)
                 .collect(Collectors.toList());
     }
+
     @Override
     public void SetSellerId(UUID id, UUID sellerId) {
         Product product = productRepo.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Product not found"));
-        if (product.getSeller() != null) throw new IllegalArgumentException("Product already has a seller");
+                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+        if (product.getSeller() != null)
+            throw new IllegalArgumentException("Product already has a seller");
         User seller = userRepo.findById(sellerId)
-            .orElseThrow(() -> new EntityNotFoundException("Seller not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Seller not found"));
         product.setSeller(seller);
         productRepo.save(product);
     }
@@ -129,24 +173,69 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> getByCategoryName(String categoryName) {
         return productRepo.findAll().stream()
-                .filter(product -> product.getCategory() != null && 
-                                   product.getCategory().getName().equalsIgnoreCase(categoryName))
+                .filter(product -> product.getStatus() != ProductStatus.DISCONTINUED)
+                .filter(product -> product.getCategory() != null &&
+                        product.getCategory().getName().equalsIgnoreCase(categoryName))
                 .map(mapperUtil::toProductDTO)
                 .collect(Collectors.toList());
     }
+
     @Override
     public List<ProductDTO> getBySellerId(UUID sellerId) {
         return productRepo.findAll().stream()
-                .filter(product -> product.getSeller() != null && 
-                                   product.getSeller().getId().equals(sellerId))
+                .filter(product -> product.getStatus() != ProductStatus.DISCONTINUED)
+                .filter(product -> product.getSeller() != null &&
+                        product.getSeller().getId().equals(sellerId))
                 .map(mapperUtil::toProductDTO)
                 .collect(Collectors.toList());
     }
+
     @Override
     public List<ProductDTO> getByBrand(String brand) {
         return productRepo.findAll().stream()
-                .filter(product -> product.getBrand() != null && 
-                                   product.getBrand().equalsIgnoreCase(brand))
+                .filter(product -> product.getStatus() != ProductStatus.DISCONTINUED)
+                .filter(product -> product.getBrand() != null &&
+                        product.getBrand().equalsIgnoreCase(brand))
+                .map(mapperUtil::toProductDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductDTO> getPendingProducts() {
+        return productRepo.findByStatus(ProductStatus.PENDING).stream()
+                .map(mapperUtil::toProductDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void approveProduct(UUID id, UUID adminId) {
+        Product product = productRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+        // Optional: Check if adminId is valid admin
+        product.setStatus(ProductStatus.APPROVED);
+        productRepo.save(product);
+    }
+
+    @Override
+    public void rejectProduct(UUID id, UUID adminId, String reason) {
+        Product product = productRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+        // Optional: Check if adminId is valid admin
+        product.setStatus(ProductStatus.REJECTED);
+        product.setRejectionReason(reason);
+        productRepo.save(product);
+    }
+
+    @Override
+    public String getRejectionReason(UUID id) {
+        Product product = productRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+        return product.getRejectionReason();
+    }
+
+    @Override
+    public List<ProductDTO> getApprovedProducts() {
+        return productRepo.findByStatus(ProductStatus.APPROVED).stream()
                 .map(mapperUtil::toProductDTO)
                 .collect(Collectors.toList());
     }

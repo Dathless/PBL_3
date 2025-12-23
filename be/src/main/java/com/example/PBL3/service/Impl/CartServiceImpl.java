@@ -26,12 +26,11 @@ import com.example.PBL3.util.MapperUtil;
 
 
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
-@Slf4j
 public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
@@ -40,6 +39,19 @@ public class CartServiceImpl implements CartService {
     private final ProductService productService;
     private final CategoryRepository categoryRepo;
     private final MapperUtil mapperUtil;
+
+    private static final Logger log = Logger.getLogger(CartServiceImpl.class.getName());
+
+    public CartServiceImpl(CartRepository cartRepository, CartItemRepository cartItemRepository, 
+                          UserService userService, ProductService productService, 
+                          CategoryRepository categoryRepo, MapperUtil mapperUtil) {
+        this.cartRepository = cartRepository;
+        this.cartItemRepository = cartItemRepository;
+        this.userService = userService;
+        this.productService = productService;
+        this.categoryRepo = categoryRepo;
+        this.mapperUtil = mapperUtil;
+    }
 
 
     @Override

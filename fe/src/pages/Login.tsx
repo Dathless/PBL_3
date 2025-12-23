@@ -86,8 +86,10 @@ export default function LoginPage() {
       if (redirect) {
         navigate(redirect)
       } else {
-        const role = response.role === "CUSTOMER" ? "buyer" : response.role === "SELLER" ? "seller" : "buyer"
-        if (role === "seller") {
+        const role = response.role === "CUSTOMER" ? "buyer" : response.role === "SELLER" ? "seller" : response.role === "ADMIN" ? "admin" : "buyer"
+        if (role === "admin") {
+          navigate("/admin/dashboard")
+        } else if (role === "seller") {
           navigate("/seller/dashboard")
         } else {
           navigate("/")

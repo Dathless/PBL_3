@@ -19,13 +19,24 @@ import com.example.PBL3.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+//import lombok.RequiredArgsConstructor;
+//import lombok.extern.slf4j.Slf4j;
+
+//@RestController
+//@RequestMapping("/api/categories")
+//@RequiredArgsConstructor
+//@Slf4j
 @RestController
 @RequestMapping("/api/categories")
-@RequiredArgsConstructor
-@Slf4j
 public class CategoryController {
 
 	private final CategoryService categoryService;
+
+	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CategoryController.class);
+
+	public CategoryController(CategoryService categoryService) {
+		this.categoryService = categoryService;
+	}
 
 
 	@GetMapping

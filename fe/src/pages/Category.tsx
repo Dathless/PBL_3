@@ -53,7 +53,7 @@ export default function CategoryPage() {
     const loadProducts = async () => {
       try {
         setLoading(true)
-        // 🛠️ SỬA: Dùng API mới để lấy sản phẩm theo tên danh mục
+        // 🛠️ FIX: Use new API to get products by category name
         const fetchedProducts = await productApi.getByCategoryName(categoryKey);
         
         // 🛠️ SỬA: Mapping dữ liệu trả về từ API
@@ -70,7 +70,7 @@ export default function CategoryPage() {
         setCategoryProducts(products)
       } catch (error) {
         console.error("Error loading products:", error)
-        setCategoryProducts([]) // Đảm bảo clear dữ liệu cũ nếu lỗi
+        setCategoryProducts([]) // Ensure old data is cleared if error
       } finally {
         setLoading(false)
       }

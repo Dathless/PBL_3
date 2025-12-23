@@ -23,6 +23,7 @@ interface Product {
   size?: string
   color?: string
   brand?: string
+  rejectionReason?: string
   images?: Array<{ id: number; imageUrl: string; altText?: string }>
 }
 
@@ -43,9 +44,14 @@ export default function ProductsPage() {
   const [editSizes, setEditSizes] = useState<string[]>([])
   const [editColors, setEditColors] = useState<string[]>([])
 
+  // State for image upload
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
   const sizeOptions: Record<string, string[]> = {
-    Shoes: ["36","37","38","39","40","41","42","43","44","45"],
-    "T-Shirt": ["XS","S","M","L","XL","XXL"],
+    Shoes: ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
+    "T-Shirt": ["XS", "S", "M", "L", "XL", "XXL"],
     Bag: ["One Size"],
     Accessories: ["One Size"],
     Watches: ["One Size"],
@@ -68,6 +74,81 @@ export default function ProductsPage() {
     loadCategories()
   }, [])
 
+  // Xử lý khi chọn file ảnh
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles = Array.from(files);
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+
+    // Create preview URL
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  // Remove selected image
+  const removeImage = (index: number) => {
+    const newPreviews = [...imagePreviews];
+    const newFiles = [...selectedFiles];
+    newPreviews.splice(index, 1);
+    newFiles.splice(index, 1);
+    setImagePreviews(newPreviews);
+    setSelectedFiles(newFiles);
+  };
+
+  // Tải ảnh lên server
+  const uploadImages = async (files: File[]): Promise<string[]> => {
+    const attempt = async (formData: FormData) => {
+      const response = await fetch('http://localhost:8080/api/files/upload-multiple', {
+        method: 'POST',
+        body: formData,
+      });
+
+      // Read body text once to avoid "body disturbed or locked" errors
+      const bodyText = await response.text();
+
+      if (!response.ok) {
+        // Try to parse JSON from the text, otherwise return raw text
+        try {
+          const errorData = JSON.parse(bodyText);
+          const msg = (errorData && (errorData.message || errorData.error || errorData.status)) ? (errorData.message || errorData.error || JSON.stringify(errorData)) : response.statusText;
+          throw new Error(msg || `Upload failed: ${response.status}`);
+        } catch {
+          throw new Error(bodyText || response.statusText || `Upload failed: ${response.status}`);
+        }
+      }
+
+      // Success: parse JSON from the body text
+      try {
+        const data = JSON.parse(bodyText);
+        if (data.fileDownloadUris && Array.isArray(data.fileDownloadUris)) return data.fileDownloadUris;
+        if (data.files && Array.isArray(data.files)) return data.files.map((f: any) => f.fileDownloadUri || f.fileDownloadUri || '').filter(Boolean);
+        if (Array.isArray(data)) return data;
+      } catch {
+        // If parsing fails, return empty list
+      }
+      return [];
+    };
+
+    // First try with field name 'files', then fallback to 'files[]' if needed
+    try {
+      const formData1 = new FormData();
+      files.forEach(file => formData1.append('files', file));
+      return await attempt(formData1);
+    } catch (err1) {
+      console.warn('uploadImages: first attempt with "files" failed, retrying with "files[]"', err1);
+      try {
+        const formData2 = new FormData();
+        files.forEach(file => formData2.append('files[]', file));
+        return await attempt(formData2);
+      } catch (err2) {
+        console.error('uploadImages: both attempts failed', err2);
+        throw err2;
+      }
+    }
+  };
+
   // Load products from backend - filter by seller_id
   useEffect(() => {
     const loadProducts = async () => {
@@ -76,7 +157,7 @@ export default function ProductsPage() {
       setLoading(true)
       try {
         // Get all products
-        const allProducts = await productApi.getAll()
+        const allProducts = await productApi.getAll("ALL")
         // Filter products by seller_id (assuming ProductDTO has sellerId field)
         // If backend doesn't have seller_id yet, this will show empty list
         const sellerProducts = allProducts.filter((p: any) => {
@@ -84,7 +165,7 @@ export default function ProductsPage() {
           // For now, if sellerId doesn't exist, return empty array
           return p.sellerId === user.id || (p.seller && p.seller.id === user.id)
         })
-        
+
         const productList = sellerProducts.map((p: any) => ({
           id: p.id,
           name: p.name,
@@ -97,6 +178,7 @@ export default function ProductsPage() {
           size: p.size,
           color: p.color,
           brand: p.brand,
+          rejectionReason: p.rejectionReason,
           images: p.images || [],
         }))
         setProducts(productList)
@@ -197,7 +279,22 @@ export default function ProductsPage() {
                 )}
               </div>
               <div className="p-4">
-                <h3 className="font-bold text-lg mb-2">{product.name}</h3>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold text-lg">{product.name}</h3>
+                  <div className="flex flex-col items-end">
+                    <span className={`px-2 py-1 text-xs rounded-full font-semibold ${product.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                      product.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                      {product.status}
+                    </span>
+                  </div>
+                </div>
+                {product.status === 'REJECTED' && product.rejectionReason && (
+                  <div className="mb-2 p-2 bg-red-50 text-red-700 text-xs rounded border border-red-100">
+                    <strong>Rejected:</strong> {product.rejectionReason}
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-cyan-600 font-semibold">${product.price}</span>
                   <span className="text-sm text-gray-600">Stock: {product.stock}</span>
@@ -274,39 +371,63 @@ export default function ProductsPage() {
               <form
                 className="space-y-4"
                 onSubmit={async (e) => {
-                  e.preventDefault()
+                  e.preventDefault();
                   if (!user?.id) {
                     toast({
                       title: "Error",
-                      description: "User not authenticated",
+                      description: "Please log in",
                       variant: "destructive",
-                    })
-                    return
+                    });
+                    return;
                   }
 
+                  // Validate required fields
+                  if (!form.name || !form.price || !form.stock || !form.categoryId) {
+                    toast({
+                      title: "Error",
+                      description: "Please fill in all required fields",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  // Validate at least one image or image URL is provided
+                  if (selectedFiles.length === 0 && !form.imageUrl) {
+                    toast({
+                      title: "Error",
+                      description: "Please upload at least one image or provide an image URL",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  setIsUploading(true);
                   try {
-                    //Parse color and size
-                    // const colorInp : string[] = document.getElementById("color-input") ? (document.getElementById("color-input") as HTMLInputElement).value.split(",").map(v => v.trim()).filter(Boolean) : []
+                    let imageUrls: string[] = [];
 
-                    // Create product with backend API
-                    const sizeJson = createJsonArray(addSizes)
-                    const colorJson = createJsonArray(addColors)
-                    console.log("Creating product with sizes:", sizeJson, "and colors:", colorJson)
-                    console.log("Seller ID:", user.id)
-                    // Format image URL: "/" + filename + extension
-                    let imageUrl = form.imageUrl.trim()
-                    if (imageUrl && !imageUrl.startsWith("/")) {
-                      // Extract filename and extension
-                      const lastSlash = imageUrl.lastIndexOf("/")
-                      const filename = lastSlash >= 0 ? imageUrl.substring(lastSlash + 1) : imageUrl
-                      imageUrl = "/" + filename
+                    // Upload images if any files are selected
+                    if (selectedFiles.length > 0) {
+                      try {
+                        imageUrls = await uploadImages(selectedFiles);
+                      } catch (error) {
+                        console.error('Error uploading images:', error);
+                        toast({
+                          title: "Error",
+                          description: (error && (error as any).message) ? (error as any).message : "Failed to upload images. Please try again.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                    } else if (form.imageUrl) {
+                      // Use image URL if no files are selected
+                      imageUrls = [form.imageUrl];
                     }
-                    
-                    const images = imageUrl ? [{
-                      imageUrl: imageUrl,
-                      altText: form.name,
-                    }] : []
 
+                    // Convert sizes and colors to JSON
+                    const sizeJson = createJsonArray(addSizes);
+                    const colorJson = createJsonArray(addColors);
+
+                    // Create new product with API
                     const newProduct = await productApi.create({
                       name: form.name,
                       description: form.description,
@@ -320,45 +441,62 @@ export default function ProductsPage() {
                       color: colorJson,
                       status: "AVAILABLE",
                       categoryId: Number(form.categoryId),
-                      images: images,
-                      sellerId: user.id, // Add seller_id when creating product
-                    })
-                    console.log("Created product:", newProduct)
-                    // Reload products - filter by seller_id
-                    const allProducts = await productApi.getAll()
-                    const sellerProducts = allProducts.filter((p: any) => {
-                      return p.sellerId === user.id || (p.seller && p.seller.id === user.id)
-                    })
-                    const productList = sellerProducts.map((p: any) => ({
-                      id: p.id,
-                      name: p.name,
-                      description: p.description,
-                      price: Number(p.price),
-                      stock: p.stock,
-                      category: "",
-                      categoryId: p.categoryId || 0,
-                      status: p.status || "AVAILABLE",
-                      size: p.size,
-                      color: p.color,
-                      images: p.images || [],
-                    }))
-                    setProducts(productList)
+                      images: imageUrls.map(url => ({
+                        imageUrl: url,
+                        altText: form.name,
+                      })),
+                      sellerId: user.id,
+                    });
 
-                    setShowAddModal(false)
-                    setForm({ name: "", price: "", stock: "", categoryId: form.categoryId, description: "",brand: "", color: "", imageUrl: "" })
-                    setAddSizes([])
-                    setAddColors([])
+                    // Optimistic update: Add new product to local state immediately
+                    const newProductItem: Product = {
+                      id: (newProduct as any).id,
+                      name: form.name,
+                      description: form.description,
+                      price: Number(form.price || 0),
+                      stock: Number(form.stock || 0),
+                      category: "", // Will be loaded from category
+                      categoryId: Number(form.categoryId),
+                      status: "PENDING", // New products are pending
+                      size: sizeJson,
+                      color: colorJson,
+                      images: imageUrls.map(url => ({
+                        id: 0, // Temp ID
+                        imageUrl: url,
+                        altText: form.name,
+                      })),
+                    }
+
+                    setProducts(prev => [...prev, newProductItem]);
+                    setShowAddModal(false);
+                    setForm({
+                      name: "",
+                      price: "",
+                      stock: "",
+                      categoryId: form.categoryId,
+                      description: "",
+                      brand: "",
+                      color: "",
+                      imageUrl: ""
+                    });
+                    setAddSizes([]);
+                    setAddColors([]);
+                    setSelectedFiles([]);
+                    setImagePreviews([]);
+
                     toast({
                       title: "Success",
-                      description: "Product created successfully",
-                    })
+                      description: "Product added successfully",
+                    });
                   } catch (error: any) {
-                    console.error("Error creating product:", error)
+                    console.error("Error creating product:", error);
                     toast({
                       title: "Error",
-                      description: error.message || "Failed to create product",
+                      description: error.message || "Cannot create product",
                       variant: "destructive",
-                    })
+                    });
+                  } finally {
+                    setIsUploading(false);
                   }
                 }}
               >
@@ -446,14 +584,63 @@ export default function ProductsPage() {
                   <p className="text-xs text-gray-500 mt-1">Enter colors separated by comma. Data will be saved as JSON array.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Image URL</label>
-                  <input
-                    type="text"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500"
-                    placeholder="Enter image URL"
-                    value={form.imageUrl}
-                    onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  />
+                  <label className="block text-sm font-semibold mb-2">Product Images</label>
+
+                  {/* Phần chọn file */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center mb-3">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="image-upload"
+                      disabled={isUploading}
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className={`cursor-pointer ${isUploading ? 'opacity-50' : 'hover:text-cyan-700'} text-cyan-600 font-medium`}
+                    >
+                      <Plus className="w-6 h-6 mx-auto mb-2" />
+                      <span>Click to upload image</span>
+                      <p className="text-xs text-gray-500 mt-1">or drag and drop image here</p>
+                    </label>
+                  </div>
+
+                  {/* Preview selected images */}
+                  <div className="flex flex-wrap gap-3 mb-3">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index}`}
+                          className="w-20 h-20 object-cover rounded border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          disabled={isUploading}
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Nhập URL ảnh (dự phòng) */}
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Or enter image URL:</p>
+                    <input
+                      type="text"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
+                      placeholder="https://example.com/image.jpg"
+                      value={form.imageUrl}
+                      onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                      disabled={isUploading}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Size</label>
@@ -498,9 +685,21 @@ export default function ProductsPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-cyan-600 text-white py-2 rounded-lg font-semibold hover:bg-cyan-700 transition"
+                    className={`flex-1 bg-cyan-600 text-white py-2 rounded-lg font-semibold hover:bg-cyan-700 transition flex items-center justify-center ${isUploading ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    disabled={isUploading}
                   >
-                    Add Product
+                    {isUploading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Uploading...
+                      </>
+                    ) : (
+                      'Add Product'
+                    )}
                   </button>
                 </div>
               </form>
@@ -521,7 +720,7 @@ export default function ProductsPage() {
                   try {
                     const sizeJson = createJsonArray(editSizes)
                     const colorJson = createJsonArray(editColors)
-                    
+
                     // Format image URL: "/" + filename + extension
                     let imageUrl = (editForm.imageUrl || "").trim()
                     if (imageUrl && !imageUrl.startsWith("/")) {
@@ -530,7 +729,7 @@ export default function ProductsPage() {
                       const filename = lastSlash >= 0 ? imageUrl.substring(lastSlash + 1) : imageUrl
                       imageUrl = "/" + filename
                     }
-                    
+
                     const images = imageUrl ? [{
                       imageUrl: imageUrl,
                       altText: editForm.name,
@@ -639,18 +838,18 @@ export default function ProductsPage() {
                     return sizeOptions[categoryName] ? (
                       <div className="flex flex-wrap gap-2">
                         {sizeOptions[categoryName].map((s) => {
-                        const active = editSizes.includes(s)
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => setEditSizes(active ? editSizes.filter(x => x !== s) : [...editSizes, s])}
-                            className={`px-3 py-1 rounded-full text-sm border ${active ? "bg-cyan-600 text-white border-cyan-600" : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"}`}
-                          >
-                            {s}
-                          </button>
-                        )
-                      })}
+                          const active = editSizes.includes(s)
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setEditSizes(active ? editSizes.filter(x => x !== s) : [...editSizes, s])}
+                              className={`px-3 py-1 rounded-full text-sm border ${active ? "bg-cyan-600 text-white border-cyan-600" : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"}`}
+                            >
+                              {s}
+                            </button>
+                          )
+                        })}
                       </div>
                     ) : (
                       <input

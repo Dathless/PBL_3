@@ -20,13 +20,23 @@ import com.example.PBL3.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+//import lombok.RequiredArgsConstructor;
+//import lombok.extern.slf4j.Slf4j;
+
+//@RestController
+//@RequestMapping("/api/orders")
+//@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/orders")
-@RequiredArgsConstructor
-@Slf4j
 public class OrderController {
 
 	private final OrderService orderService;
+
+	private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OrderController.class);
+
+	public OrderController(OrderService orderService) {
+		this.orderService = orderService;
+	}
 
 
 	@GetMapping

@@ -13,11 +13,18 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+//import lombok.RequiredArgsConstructor;
+
+//@Component
+//@RequiredArgsConstructor
 @Component
-@RequiredArgsConstructor
 public class loginSuccessHandler implements AuthenticationSuccessHandler {
     private final JwtUtil jwtUtil;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public loginSuccessHandler(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,

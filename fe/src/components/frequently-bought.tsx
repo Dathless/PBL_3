@@ -30,6 +30,12 @@ export function FrequentlyBought() {
         setLoading(true)
         const allProducts = await productApi.getAll()
         console.log("All Products:", allProducts);
+
+        if (allProducts.length === 0) {
+          setProducts([])
+          return
+        }
+
         // Use the single product from DB (repeat it 5 times for display)
         const productList: Product[] = allProducts.slice(0, 5).map(p => ({
           id: p.id,
@@ -37,9 +43,9 @@ export function FrequentlyBought() {
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
           price: Number(p.price),
         }))
-        
+
         // Repeat the product to fill 5 slots
-        const repeatedProducts : Product[] = Array.from({length: 5}).map((_, index) => {
+        const repeatedProducts: Product[] = Array.from({ length: 5 }).map((_, index) => {
           const p = productList[index % productList.length]
           return {
             ...p,
@@ -53,7 +59,7 @@ export function FrequentlyBought() {
         setLoading(false)
       }
     }
-    
+
     loadProducts()
   }, [])
 
@@ -97,49 +103,49 @@ export function FrequentlyBought() {
       ) : (
         <div className="grid grid-cols-5 gap-4">
           {products.map((product) => (
-          <div key={product.id} className="group">
-            <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
-              <Link to={`/product/${product.id}`}>
-                <div className="relative aspect-square bg-gray-300 overflow-hidden">
-                  {product.badge && (
-                    <span className="absolute top-2 left-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded">
-                      {product.badge}
-                    </span>
-                  )}
-                  <img
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition"
-                  />
-                </div>
-              </Link>
-              <div className="p-3">
+            <div key={product.id} className="group">
+              <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
                 <Link to={`/product/${product.id}`}>
-                  <h3 className="font-bold text-xs text-gray-900 line-clamp-2 mb-2 hover:text-cyan-600 transition">{product.name}</h3>
+                  <div className="relative aspect-square bg-gray-300 overflow-hidden">
+                    {product.badge && (
+                      <span className="absolute top-2 left-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded">
+                        {product.badge}
+                      </span>
+                    )}
+                    <img
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition"
+                    />
+                  </div>
                 </Link>
-                <p className="text-sm font-bold text-cyan-600 mb-2">${product.price}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleBuy(product)
-                    }}
-                    className="w-full bg-cyan-500 text-white py-1.5 rounded-full font-bold text-xs hover:bg-cyan-600 transition"
-                  >
-                    BUY NOW
-                  </button>
-                  <button
-                    onClick={(e) => handleAddToCart(product, e)}
-                    className="w-full border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
-                  >
-                    <ShoppingCart className="w-3 h-3" />
-                    ADD
-                  </button>
+                <div className="p-3">
+                  <Link to={`/product/${product.id}`}>
+                    <h3 className="font-bold text-xs text-gray-900 line-clamp-2 mb-2 hover:text-cyan-600 transition">{product.name}</h3>
+                  </Link>
+                  <p className="text-sm font-bold text-cyan-600 mb-2">${product.price}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        handleBuy(product)
+                      }}
+                      className="w-full bg-cyan-500 text-white py-1.5 rounded-full font-bold text-xs hover:bg-cyan-600 transition"
+                    >
+                      BUY NOW
+                    </button>
+                    <button
+                      onClick={(e) => handleAddToCart(product, e)}
+                      className="w-full border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                    >
+                      <ShoppingCart className="w-3 h-3" />
+                      ADD
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
         </div>
       )}
 

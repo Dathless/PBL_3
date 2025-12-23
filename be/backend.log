@@ -1,0 +1,96 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldBase has been called by com.google.inject.internal.aop.HiddenClassDefiner (file:/Users/minhthu/.m2/wrapper/dists/apache-maven-3.9.11/a2d47e15/lib/guice-5.1.0-classes.jar)
+WARNING: Please consider reporting this to the maintainers of class com.google.inject.internal.aop.HiddenClassDefiner
+WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------------< com.example:PBL3 >--------------------------
+[INFO] Building PBL3 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.5.6:run (default-cli) > test-compile @ PBL3 >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ PBL3 ---
+[INFO] Copying 8 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ PBL3 ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ PBL3 ---
+[INFO] skip non existing resourceDirectory /Users/minhthu/Documents/PBL_3/be/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ PBL3 ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:3.5.6:run (default-cli) < test-compile @ PBL3 <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.5.6:run (default-cli) @ PBL3 ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+2025-12-24T01:15:34.671+07:00  INFO 66253 --- [PBL3] [  restartedMain] com.example.PBL3.Pbl3Application         : Starting Pbl3Application using Java 24.0.2 with PID 66253 (/Users/minhthu/Documents/PBL_3/be/target/classes started by minhthu in /Users/minhthu/Documents/PBL_3/be)
+2025-12-24T01:15:34.672+07:00  INFO 66253 --- [PBL3] [  restartedMain] com.example.PBL3.Pbl3Application         : No active profile set, falling back to 1 default profile: "default"
+2025-12-24T01:15:34.689+07:00  INFO 66253 --- [PBL3] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2025-12-24T01:15:34.689+07:00  INFO 66253 --- [PBL3] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2025-12-24T01:15:35.057+07:00  INFO 66253 --- [PBL3] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-24T01:15:35.086+07:00  INFO 66253 --- [PBL3] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 25 ms. Found 10 JPA repository interfaces.
+2025-12-24T01:15:35.339+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-12-24T01:15:35.345+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-12-24T01:15:35.345+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2025-12-24T01:15:35.356+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-12-24T01:15:35.356+07:00  INFO 66253 --- [PBL3] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 667 ms
+2025-12-24T01:15:35.449+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-24T01:15:35.472+07:00  INFO 66253 --- [PBL3] [  restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
+2025-12-24T01:15:35.484+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-12-24T01:15:35.583+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-24T01:15:35.593+07:00  INFO 66253 --- [PBL3] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : Ecommerce - Starting...
+2025-12-24T01:15:35.668+07:00  INFO 66253 --- [PBL3] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : Ecommerce - Added connection com.mysql.cj.jdbc.ConnectionImpl@84142f5
+2025-12-24T01:15:35.668+07:00  INFO 66253 --- [PBL3] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : Ecommerce - Start completed.
+2025-12-24T01:15:35.690+07:00  WARN 66253 --- [PBL3] [  restartedMain] org.hibernate.orm.deprecation            : HHH90000025: MySQL8Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-24T01:15:35.691+07:00  WARN 66253 --- [PBL3] [  restartedMain] org.hibernate.orm.deprecation            : HHH90000026: MySQL8Dialect has been deprecated; use org.hibernate.dialect.MySQLDialect instead
+2025-12-24T01:15:35.696+07:00  INFO 66253 --- [PBL3] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (Ecommerce)']
+	Database driver: undefined/unknown
+	Database version: 8.0
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-12-24T01:15:36.040+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-24T01:15:36.150+07:00  INFO 66253 --- [PBL3] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-24T01:15:36.471+07:00  WARN 66253 --- [PBL3] [  restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-12-24T01:15:36.621+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-12-24T01:15:36.649+07:00  INFO 66253 --- [PBL3] [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailService
+2025-12-24T01:15:36.686+07:00 DEBUG 66253 --- [PBL3] [  restartedMain] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, JwtAuthenticationFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, ExceptionTranslationFilter, AuthorizationFilter
+2025-12-24T01:15:36.834+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2025-12-24T01:15:36.870+07:00  INFO 66253 --- [PBL3] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-12-24T01:15:36.877+07:00  INFO 66253 --- [PBL3] [  restartedMain] com.example.PBL3.Pbl3Application         : Started Pbl3Application in 2.342 seconds (process running for 2.507)
+2025-12-24T01:15:46.536+07:00  INFO 66253 --- [PBL3] [0.0-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-24T01:15:46.536+07:00  INFO 66253 --- [PBL3] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-12-24T01:15:46.538+07:00  INFO 66253 --- [PBL3] [0.0-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2025-12-24T01:15:46.551+07:00 DEBUG 66253 --- [PBL3] [0.0-8080-exec-1] o.s.security.web.FilterChainProxy        : Securing GET /actuator/health
+2025-12-24T01:15:46.566+07:00 DEBUG 66253 --- [PBL3] [0.0-8080-exec-1] o.s.security.web.FilterChainProxy        : Secured GET /actuator/health
+2025-12-24T01:15:46.639+07:00 DEBUG 66253 --- [PBL3] [0.0-8080-exec-1] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to anonymous SecurityContext
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  02:09 min
+[INFO] Finished at: 2025-12-24T01:17:43+07:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.5.6:run (default-cli) on project PBL3: Process terminated with exit code: 137 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

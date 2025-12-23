@@ -20,11 +20,16 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final MapperUtil mapperUtil;
+
+    public PaymentServiceImpl(PaymentRepository paymentRepository, OrderRepository orderRepository, MapperUtil mapperUtil) {
+        this.paymentRepository = paymentRepository;
+        this.orderRepository = orderRepository;
+        this.mapperUtil = mapperUtil;
+    }
 
     @Override
     public PaymentResponseDTO createPayment(PaymentRequestDTO dto){

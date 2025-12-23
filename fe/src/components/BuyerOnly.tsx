@@ -10,8 +10,11 @@ export default function BuyerOnly({ children }: { children: ReactNode }) {
     if (user?.role === "seller") {
       navigate("/seller/dashboard", { replace: true })
     }
+    if (user?.role === "admin") {
+      navigate("/admin/dashboard", { replace: true })
+    }
   }, [user, navigate])
 
-  if (user?.role === "seller") return null
+  if (user?.role === "seller" || user?.role === "admin") return null
   return <>{children}</>
 }

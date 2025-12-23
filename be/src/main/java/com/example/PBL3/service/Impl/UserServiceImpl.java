@@ -22,12 +22,17 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-@RequiredArgsConstructor
-@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final MapperUtil mapperUtil;
+
+    private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger(UserServiceImpl.class.getName());
+
+    public UserServiceImpl(UserRepository userRepository, MapperUtil mapperUtil) {
+        this.userRepository = userRepository;
+        this.mapperUtil = mapperUtil;
+    }
 
     @Override
     public UserDTO createUser(UserDTO userDTO) {

@@ -29,6 +29,7 @@ import SellerPayouts from './pages/seller/Payouts'
 import SellerAnalytics from './pages/seller/Analytics'
 import SellerSettings from './pages/seller/Settings'
 import SellerSupport from './pages/seller/Support'
+import AdminRouter from './pages/admin/AdminRouter'
 
 // Component to redirect based on role
 function RoleBasedRedirect() {
@@ -44,6 +45,10 @@ function RoleBasedRedirect() {
   
   if (user.role === "seller") {
     return <Navigate to="/seller/dashboard" replace />
+  }
+
+  if (user.role === "admin") {
+    return <Navigate to="/admin/dashboard" replace />
   }
   
   return <Navigate to="/" replace />
@@ -77,6 +82,8 @@ function App() {
               <Route path="/seller/analytics" element={<ProtectedRoute allowedRoles={["seller"]}><SellerAnalytics /></ProtectedRoute>} />
               <Route path="/seller/settings" element={<ProtectedRoute allowedRoles={["seller"]}><SellerSettings /></ProtectedRoute>} />
               <Route path="/seller/support" element={<ProtectedRoute allowedRoles={["seller"]}><SellerSupport /></ProtectedRoute>} />
+              {/* Admin */}
+              <Route path="/admin/*" element={<ProtectedRoute allowedRoles={["admin"]}><AdminRouter /></ProtectedRoute>} />
             </Routes>
             <Toaster />
           </ShippingProvider>

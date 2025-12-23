@@ -52,8 +52,8 @@ export default function BuyNowPage() {
   useEffect(() => {
     if (!productId) {
       toast({
-        title: "Lỗi",
-        description: "Không tìm thấy sản phẩm.",
+        title: "Error",
+        description: "Product not found.",
         variant: "destructive",
       })
       navigate("/")
@@ -62,8 +62,8 @@ export default function BuyNowPage() {
 
     if (!product) {
       toast({
-        title: "Lỗi",
-        description: "Thông tin sản phẩm không hợp lệ.",
+        title: "Error",
+        description: "Invalid product information.",
         variant: "destructive",
       })
       navigate("/")

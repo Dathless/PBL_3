@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react"
 import { authApi } from "@/lib/api"
 
-export type UserRole = "buyer" | "seller"
+export type UserRole = "buyer" | "seller" | "admin"
 
 interface User {
   id: string
@@ -37,7 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAuth = async () => {
     try {
       const userData = await authApi.getCurrentUser()
-      const role = userData.role === "CUSTOMER" ? "buyer" : userData.role === "SELLER" ? "seller" : "buyer"
+      const role = userData.role === "CUSTOMER"
+        ? "buyer"
+        : userData.role === "SELLER"
+          ? "seller"
+          : "admin"
       setUser({
         id: userData.Id,
         username: userData.username,
@@ -57,12 +61,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       const response = await authApi.login(username, password)
-      const role = response.role === "CUSTOMER" ? "buyer" : response.role === "SELLER" ? "seller" : "buyer"
+      const role = response.role === "CUSTOMER"
+        ? "buyer"
+        : response.role === "SELLER"
+          ? "seller"
+          : "admin"
       const userData: User = {
         id: "", // Will be fetched from getCurrentUser
         username: response.username,
         role: role as UserRole,
         name: response.fullname,
+      }
+      // Save token to localStorage
+      if (response.token) {
+        localStorage.setItem("token", response.token)
       }
       setUser(userData)
       setIsAuthenticated(true)
@@ -79,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Logout error:", error)
     } finally {
+      localStorage.removeItem("token")
       setIsAuthenticated(false)
       setUser(null)
     }
@@ -87,7 +100,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = async () => {
     try {
       const userData = await authApi.getCurrentUser()
-      const role = userData.role === "CUSTOMER" ? "buyer" : userData.role === "SELLER" ? "seller" : "buyer"
+      const role = userData.role === "CUSTOMER"
+        ? "buyer"
+        : userData.role === "SELLER"
+          ? "seller"
+          : "admin"
       setUser({
         id: userData.Id,
         username: userData.username,

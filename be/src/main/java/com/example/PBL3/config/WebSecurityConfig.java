@@ -17,15 +17,27 @@ import com.example.PBL3.util.loginSuccessHandler;
 
 import lombok.RequiredArgsConstructor;
 
+import lombok.RequiredArgsConstructor;
+
+//@Configuration
+//@EnableWebSecurity
+//@EnableMethodSecurity(prePostEnabled = true)
+//@RequiredArgsConstructor
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class WebSecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
     private final JwtUtil  jwtUtil;
     private final loginSuccessHandler loginHandler;
+
+    public WebSecurityConfig(JwtAuthenticationFilter jwtFilter, JwtUtil jwtUtil, loginSuccessHandler loginHandler) {
+        this.jwtFilter = jwtFilter;
+        this.jwtUtil = jwtUtil;
+        this.loginHandler = loginHandler;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -33,9 +45,10 @@ public class WebSecurityConfig {
                 .cors(cor -> {})
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/Images/**", "/Views/**").permitAll()
+                        .requestMatchers("/Images/**", "/Views/**", "/uploads/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/files/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .anyRequest().permitAll()

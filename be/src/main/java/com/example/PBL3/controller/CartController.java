@@ -12,13 +12,24 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 
+//import lombok.RequiredArgsConstructor;
+//import lombok.extern.slf4j.Slf4j;
+
+//@RestController
+//@RequestMapping("/api/carts")
+//@RequiredArgsConstructor
+//@Slf4j
 @RestController
 @RequestMapping("/api/carts")
-@RequiredArgsConstructor
-@Slf4j
 public class CartController {
 
     private final CartService cartService;
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CartController.class);
+
+    public CartController(CartService cartService) {
+        this.cartService = cartService;
+    }
 
 
     @PostMapping("/{userId}")

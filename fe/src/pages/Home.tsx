@@ -17,9 +17,13 @@ export default function Home() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!loading && user?.role === "seller") {
-      navigate("/seller/dashboard", { replace: true })
-    }
+    // Removed auto-redirect for admin/seller to allow viewing home page
+    // if (!loading && user?.role === "seller") {
+    //   navigate("/seller/dashboard", { replace: true })
+    // }
+    // if (!loading && user?.role === "admin") {
+    //   navigate("/admin/dashboard", { replace: true })
+    // }
   }, [user, loading, navigate])
 
   if (loading) {
@@ -30,9 +34,10 @@ export default function Home() {
     )
   }
 
-  if (user?.role === "seller") {
-    return null
-  }
+  // Allow all users to view home page
+  // if (user?.role === "seller" || user?.role === "admin") {
+  //   return null
+  // }
 
   return (
     <main className="min-h-screen bg-white">

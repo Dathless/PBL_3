@@ -1,0 +1,35 @@
+package com.example.PBL3.config;
+
+import com.example.PBL3.model.User;
+import com.example.PBL3.model.status.UserRole;
+import com.example.PBL3.repository.UserRepository;
+import com.example.PBL3.util.PassEncoder;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class AdminInitializer {
+    private final UserRepository userRepository;
+    private final PassEncoder passEncoder;
+
+    @PostConstruct
+    public void init() {
+        // Chỉ tạo admin nếu chưa có admin nào
+        if (userRepository.countByRole(UserRole.ADMIN) == 0) {
+            User admin = new User();
+            admin.setFullname("Quản Trị Viên");
+            admin.setUsername("admin");
+            admin.setPassword(passEncoder.encode("admin123")); // Đổi mật khẩu sau khi đăng nhập
+            admin.setEmail("admin@example.com");
+            admin.setAddress("Hệ thống");
+            admin.setPhone("0123456789");
+            admin.setEnabled(true);
+            admin.setRole(UserRole.ADMIN);
+            
+            userRepository.save(admin);
+            System.out.println("Đã tạo tài khoản admin mặc định");
+        }
+    }
+}

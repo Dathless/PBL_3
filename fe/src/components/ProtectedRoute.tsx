@@ -2,9 +2,11 @@ import { ReactNode, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/contexts/auth-context"
 
+type Role = "buyer" | "seller" | "admin"
+
 interface ProtectedRouteProps {
   children: ReactNode
-  allowedRoles?: ("buyer" | "seller")[]
+  allowedRoles?: Role[]
   redirectTo?: string
 }
 
@@ -26,6 +28,8 @@ export default function ProtectedRoute({
         // Wrong role, redirect based on user role
         if (user.role === "seller") {
           navigate("/seller/dashboard", { replace: true })
+        } else if (user.role === "admin") {
+          navigate("/admin/dashboard", { replace: true })
         } else {
           navigate(redirectTo || "/", { replace: true })
         }

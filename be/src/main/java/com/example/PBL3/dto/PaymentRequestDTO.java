@@ -6,9 +6,9 @@ import java.util.UUID;
 import com.example.PBL3.model.status.PaymentMethod;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+//import lombok.*;
 
-@Data
+//@Data
 public class PaymentRequestDTO {
 
     @NotNull(message = "orderId is required")
@@ -20,4 +20,28 @@ public class PaymentRequestDTO {
 
     @NotNull(message = "method is required")
     private PaymentMethod method;
+
+    public UUID getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(UUID orderId) {
+        this.orderId = orderId;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+
+    public PaymentMethod getMethod() {
+        return method;
+    }
+
+    public void setMethod(PaymentMethod method) {
+        this.method = method;
+    }
 }

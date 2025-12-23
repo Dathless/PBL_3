@@ -48,6 +48,12 @@ export function DealsOfDay() {
       try {
         setLoading(true)
         const allProducts = await productApi.getAll()
+
+        if (allProducts.length === 0) {
+          setProducts([])
+          return
+        }
+
         // Use the single product from DB (repeat it 4 times for display)
         const productList: Product[] = allProducts.slice(0, 4).map(p => ({
           id: p.id,
@@ -57,20 +63,21 @@ export function DealsOfDay() {
           originalPrice: Number(p.price) * 1.3, // Fake original price
         }))
         console.log("Product load: ", productList)
+
         // Repeat the product to fill 4 slots
-        const repeatedProducts : Product[] = Array.from({length: 4}).map(
+        const repeatedProducts: Product[] = Array.from({ length: 4 }).map(
           (_, index) => productList[index % productList.length]
         )
         setProducts(repeatedProducts)
-        
+
         // Initialize timers
         setProductTimers(
           repeatedProducts.reduce((acc, p) => {
-            acc[p.id] = { 
-              days: Math.floor(Math.random() * 3), 
-              hours: Math.floor(Math.random() * 24), 
-              minutes: Math.floor(Math.random() * 60), 
-              seconds: Math.floor(Math.random() * 60) 
+            acc[p.id] = {
+              days: Math.floor(Math.random() * 3),
+              hours: Math.floor(Math.random() * 24),
+              minutes: Math.floor(Math.random() * 60),
+              seconds: Math.floor(Math.random() * 60)
             }
             return acc
           }, {} as ProductTimer)
@@ -81,7 +88,7 @@ export function DealsOfDay() {
         setLoading(false)
       }
     }
-    
+
     loadProducts()
   }, [])
 
@@ -164,63 +171,63 @@ export function DealsOfDay() {
       ) : (
         <div className="grid grid-cols-4 gap-4">
           {products.map((product) => (
-          <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
-            <Link to={`/product/${product.id}`} className="block">
-              <div className="relative aspect-square bg-gray-200 overflow-hidden">
-                <span className="absolute top-2 left-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded">
-                  SALE
-                </span>
-                {productTimers[product.id] && (
-                  <div className="absolute top-2 right-2 bg-cyan-500 text-white text-xs font-bold px-2 py-1 rounded">
-                    {String(productTimers[product.id].hours).padStart(2, "0")}h{" "}
-                    {String(productTimers[product.id].minutes).padStart(2, "0")}m
-                  </div>
-                )}
-                <img
-                  src={product.image || "/placeholder.svg"}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </Link>
-            <div className="p-3">
-              <Link to={`/product/${product.id}`}>
-                <h3 className="font-bold text-sm text-gray-900 line-clamp-2 hover:text-cyan-600 transition">{product.name}</h3>
+            <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
+              <Link to={`/product/${product.id}`} className="block">
+                <div className="relative aspect-square bg-gray-200 overflow-hidden">
+                  <span className="absolute top-2 left-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded">
+                    SALE
+                  </span>
+                  {productTimers[product.id] && (
+                    <div className="absolute top-2 right-2 bg-cyan-500 text-white text-xs font-bold px-2 py-1 rounded">
+                      {String(productTimers[product.id].hours).padStart(2, "0")}h{" "}
+                      {String(productTimers[product.id].minutes).padStart(2, "0")}m
+                    </div>
+                  )}
+                  <img
+                    src={product.image || "/placeholder.svg"}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </Link>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-red-600 font-bold text-sm">${product.price}</span>
-                <span className="text-gray-400 line-through text-xs">${product.originalPrice}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                <button
-                  onClick={() => {
-                    setBuyNowProduct({
-                      id: product.id,
-                      name: product.name,
-                      price: product.price,
-                      image: product.image,
-                    })
-                    navigate(`/buy-now?id=${product.id}`)
-                  }}
-                  className="w-full bg-cyan-500 text-white py-1.5 rounded-full font-bold text-xs hover:bg-cyan-600 transition text-center"
-                >
-                  BUY NOW
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setSelectedProduct(product)
-                    setIsModalOpen(true)
-                  }}
-                  className="w-full border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
-                >
-                  <ShoppingCart className="w-3 h-3" />
-                  ADD
-                </button>
+              <div className="p-3">
+                <Link to={`/product/${product.id}`}>
+                  <h3 className="font-bold text-sm text-gray-900 line-clamp-2 hover:text-cyan-600 transition">{product.name}</h3>
+                </Link>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-red-600 font-bold text-sm">${product.price}</span>
+                  <span className="text-gray-400 line-through text-xs">${product.originalPrice}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      setBuyNowProduct({
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        image: product.image,
+                      })
+                      navigate(`/buy-now?id=${product.id}`)
+                    }}
+                    className="w-full bg-cyan-500 text-white py-1.5 rounded-full font-bold text-xs hover:bg-cyan-600 transition text-center"
+                  >
+                    BUY NOW
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setSelectedProduct(product)
+                      setIsModalOpen(true)
+                    }}
+                    className="w-full border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                  >
+                    <ShoppingCart className="w-3 h-3" />
+                    ADD
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
         </div>
       )}
 

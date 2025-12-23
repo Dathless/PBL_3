@@ -21,13 +21,24 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 
+//import lombok.RequiredArgsConstructor;
+//import lombok.extern.slf4j.Slf4j;
+
+//@RestController
+//@RequestMapping("/api/order-items")
+//@RequiredArgsConstructor
+//@Slf4j
 @RestController
 @RequestMapping("/api/order-items")
-@RequiredArgsConstructor
-@Slf4j
 public class OrderItemController {
 
     private final OrderItemService orderItemService;
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OrderItemController.class);
+
+    public OrderItemController(OrderItemService orderItemService) {
+        this.orderItemService = orderItemService;
+    }
 
 
     @GetMapping("/{id}")

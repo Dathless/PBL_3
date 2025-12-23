@@ -1,60 +1,60 @@
-# 🚀 HỆ THỐNG BÁN QUẦN ÁO
+# 🚀 CLOTHING SALES SYSTEM
 
-Đây là kho lưu trữ chứa mã nguồn cho **[Mô tả ngắn gọn về dự án/Mục đích chính]**. Dự án được chia thành hai phần chính:
+This is the repository containing the source code for **[Brief project description/Main purpose]**. The project is divided into two main parts:
 
-* **`./fe` (Frontend):** Giao diện người dùng được xây dựng bằng **ReactJS**.
-* **`./be` (Backend):** API cung cấp dữ liệu, được xây dựng bằng **Spring Boot/Java**.
+* **`./fe` (Frontend):** User interface built with **ReactJS**.
+* **`./be` (Backend):** Data-providing API, built with **Spring Boot/Java**.
 
-Thông tin hệ thống:
+System information:
 - **Backend:** [http://localhost:8080](http://localhost:8080)
 - **Frontend:** [http://localhost:3000](http://localhost:3000)
 
-Thông tin Database:
+Database information:
 - **URL:** [jdbc:mysql://localhost:3306/ecommerce_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC]
 - **Username:** root
 - **Password:** Dang2004!
 
-## 🛠 Yêu cầu hệ thống (Prerequisites)
+## 🛠 System Requirements (Prerequisites)
 
-Để khởi động và phát triển dự án, bạn cần cài đặt các công cụ sau trên máy:
+To start and develop the project, you need to install the following tools on your machine:
 
-* **Java Development Kit (JDK):** **[Phiên bản JDK: VD: 17+]** (Cho Backend)
-* **Node.js & npm/yarn:** **[Phiên bản Node.js: VD: 18+]** (Cho Frontend)
-* **Maven** (Chạy Spring Boot bằng Terminal)
+* **Java Development Kit (JDK):** **[JDK Version: e.g., 17+]** (For Backend)
+* **Node.js & npm/yarn:** **[Node.js Version: e.g., 18+]** (For Frontend)
+* **Maven** (Run Spring Boot via Terminal)
 
-## 💡 Thiết lập và Khởi động (Setup & Run)
+## 💡 Setup and Launch (Setup & Run)
 
-Thao tác này bao gồm hai bước: Khởi động Backend (API) và Khởi động Frontend (Giao diện).
+This process includes two steps: Starting the Backend (API) and Starting the Frontend (Interface).
 
-### 1. Khởi động Backend (Spring Boot)
+### 1. Start Backend (Spring Boot)
 
-Backend sẽ chạy trên cổng mặc định là **:8080** và cung cấp các API cho Frontend.
+Backend will run on the default port **:8080** and provide APIs for the Frontend.
 
-1.  Di chuyển vào thư mục backend:
+1.  Navigate to the backend directory:
     ```bash
     cd ./be
     ```
-2.  Chạy ứng dụng bằng Maven Wrapper:
+2.  Run the application using Maven Wrapper:
     ``` bash
     ./mvnw spring-boot:run
     ```
 
-### 2. Khởi động Frontend ([ReactJS])
+### 2. Start Frontend ([ReactJS])
 
-Frontend sẽ kết nối đến Backend vừa khởi động để lấy dữ liệu.
+Frontend will connect to the just-started Backend to fetch data.
 
-1.  Di chuyển vào thư mục frontend:
+1.  Navigate to the frontend directory:
     ``` bash
     cd ./fe
     ```
-2.  Cài đặt các thư viện phụ thuộc:
+2.  Install the dependency libraries:
     ``` bash
     npm install
     ```
-3.  Chạy ứng dụng (thường chạy trên cổng **[VD: 3000]**):
+3.  Run the application (usually runs on port **[e.g., 3000]**):
     ``` bash
     npm run dev
     ```
 
-Sau khi cả hai phần đều chạy, bạn có thể truy cập ứng dụng qua trình duyệt tại địa chỉ: [http://localhost:3000](http://localhost:3000)
+After both parts are running, you can access the application through the browser at: [http://localhost:3000](http://localhost:3000)
 ---

@@ -9,6 +9,7 @@ import com.example.PBL3.model.status.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
+    long countByRole(UserRole role);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);

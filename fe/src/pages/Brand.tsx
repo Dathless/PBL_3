@@ -43,7 +43,7 @@ export default function BrandPage() {
         const productList: Product[] = fetchProducts.map(p => ({
           id: p.id,
           name: p.name,
-          price: Number(p.price), // Đã biết p.price là number nhờ ApiProduct
+          price: Number(p.price), // Already know p.price is number thanks to ApiProduct
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
         }))
 
