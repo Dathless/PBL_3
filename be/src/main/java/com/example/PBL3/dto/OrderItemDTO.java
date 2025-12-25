@@ -27,6 +27,9 @@ public class OrderItemDTO {
     @JsonProperty("selectedSize")
     private String selectedSize;
 
+    @JsonProperty("productImageUrl")
+    private String productImageUrl;
+
     public Long getId() {
         return id;
     }
@@ -81,5 +84,13 @@ public class OrderItemDTO {
 
     public void setSelectedSize(String selectedSize) {
         this.selectedSize = selectedSize;
+    }
+
+    public String getProductImageUrl() {
+        return productImageUrl;
+    }
+
+    public void setProductImageUrl(String productImageUrl) {
+        this.productImageUrl = productImageUrl;
     }
 }

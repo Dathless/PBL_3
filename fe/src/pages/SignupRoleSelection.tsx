@@ -14,9 +14,12 @@ export default function SignupRoleSelectionPage() {
 
       <div className="max-w-2xl mx-auto px-4 py-12">
         <div className="mb-8">
-          <Link to="/" className="text-cyan-600 font-semibold text-sm hover:text-cyan-700">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-cyan-600 font-semibold text-sm hover:text-cyan-700 flex items-center gap-1"
+          >
             ← Back
-          </Link>
+          </button>
         </div>
 
         <div className="mb-8 text-center">
@@ -42,10 +45,10 @@ export default function SignupRoleSelectionPage() {
           {/* Seller Option */}
           <button
             onClick={() => navigate("/signup/seller")}
-            className="p-8 border-2 border-gray-300 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition text-left group"
+            className="p-8 border-2 border-gray-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition text-left group"
           >
-            <div className="flex items-center justify-center w-16 h-16 bg-cyan-100 rounded-full mb-4 group-hover:bg-cyan-200 transition">
-              <Store className="w-8 h-8 text-cyan-600" />
+            <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4 group-hover:bg-red-200 transition">
+              <Store className="w-8 h-8 text-red-600" />
             </div>
             <h2 className="text-xl font-bold mb-2">I'm a Seller</h2>
             <p className="text-gray-600 text-sm">

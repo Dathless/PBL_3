@@ -5,7 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import com.example.PBL3.model.Category;
 
+import java.util.Optional;
+
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-//	boolean existByName(String name);
+    Optional<Category> findByName(String name);
 }

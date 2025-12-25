@@ -103,4 +103,30 @@ public class ProductController {
     public ResponseEntity<List<ProductDTO>> getByBrand(@PathVariable String brand) {
         return ResponseEntity.ok(productService.getByBrand(brand));
     }
+
+    @GetMapping("/{productId}/variant-stock")
+    public ResponseEntity<java.util.Map<String, Integer>> getVariantStock(
+            @PathVariable UUID productId,
+            @RequestParam(required = false) String color,
+            @RequestParam(required = false) String size) {
+        int stock = productService.getVariantStock(productId, color, size);
+        return ResponseEntity.ok(java.util.Map.of("stock", stock));
+    }
+
+    @PostMapping("/fix-prices")
+    public ResponseEntity<String> fixPrices() {
+        productService.fixProductPrices();
+        return ResponseEntity.ok("Product prices have been updated to random 2-digit USD values.");
+    }
+
+    @GetMapping("/discounted")
+    public ResponseEntity<List<ProductDTO>> getDiscountedProducts() {
+        return ResponseEntity.ok(productService.getDiscountedProducts());
+    }
+
+    @GetMapping("/top-selling")
+    public ResponseEntity<List<ProductDTO>> getTopSellingProducts(
+            @RequestParam(defaultValue = "5") int limit) {
+        return ResponseEntity.ok(productService.getTopSellingProducts(limit));
+    }
 }

@@ -10,23 +10,21 @@ import {
   Eye
 } from "lucide-react"
 import SellerLayout from "./SellerLayout"
-import { getSellerOrders, getOrderDetail, type Order } from "@/lib/sellerApi"
 import { orderApi } from "@/lib/api"
-import { set } from "date-fns"
 import { formatDate } from "@/lib/utils"
 
 interface OrderForSeller {
-  orderId : string
-  productId : string
-  productName : string
-  customerId : string
-  customerName : string
-  sellerId : string
-  quantity : number
-  price : number
-  selectedColor : string
-  selectedSize : string
-  status : string
+  orderId: string
+  productId: string
+  productName: string
+  customerId: string
+  customerName: string
+  sellerId: string
+  quantity: number
+  price: number
+  selectedColor: string
+  selectedSize: string
+  status: string
   orderDate: string
 }
 
@@ -57,12 +55,10 @@ export default function OrdersPage() {
   const [activeMenu, setActiveMenu] = useState("orders")
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
-  const [orders, setOrders] = useState<Order[]>([])
   const [orderSeller, setOrderSeller] = useState<OrderForSeller[]>([])
   const [loading, setLoading] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<OrderDetail | null>(null)
   const sellerId = user?.id || "anonymous-seller"
   useEffect(() => {
@@ -72,12 +68,11 @@ export default function OrdersPage() {
       console.log("Fetching orders for seller:", sellerId)
       setLoading(true)
       try {
-        const data = await getSellerOrders(sellerId)
         const res = await orderApi.getOrdersForSeller(sellerId)
         console.log("Orders for seller:", res)
         if (mounted) {
-          setOrders(data)
-          setOrderSeller(res)}
+          setOrderSeller(res)
+        }
       } finally {
         if (mounted) setLoading(false)
       }
@@ -87,39 +82,99 @@ export default function OrdersPage() {
   }, [sellerId])
 
 
-  const filteredOrders = orders.filter(order => {
-    const matchesStatus = filterStatus === "all" || order.status === filterStatus
-    const productNames = order.items.map(i => i.productName?.toLowerCase?.() || "").join(" ")
-    const matchesSearch = order.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         productNames.includes(searchQuery.toLowerCase())
+  const filteredOrders = orderSeller.filter(order => {
+    const matchesStatus = filterStatus === "all" || order.status.toLowerCase() === filterStatus.toLowerCase()
+    const matchesSearch = order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.productName.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesStatus && matchesSearch
   })
 
-  const fetchOrder = orderSeller
-
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "delivered":
+    switch (status.toUpperCase()) {
+      case "DELIVERED":
         return <CheckCircle className="w-4 h-4 text-green-600" />
-      case "pending":
+      case "PENDING_CONFIRMATION":
         return <Clock className="w-4 h-4 text-yellow-600" />
-      case "shipped":
+      case "WAITING_FOR_PICKUP":
+        return <Truck className="w-4 h-4 text-orange-600" />
+      case "SHIPPING":
         return <Truck className="w-4 h-4 text-blue-600" />
-      default:
+      case "CANCEL_REQUESTED":
+        return <Clock className="w-4 h-4 text-purple-600" />
+      case "CANCELED":
         return <XCircle className="w-4 h-4 text-red-600" />
+      default:
+        return <Clock className="w-4 h-4 text-gray-600" />
     }
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "delivered":
+    switch (status.toUpperCase()) {
+      case "DELIVERED":
         return "bg-green-100 text-green-800"
-      case "pending":
+      case "PENDING_CONFIRMATION":
         return "bg-yellow-100 text-yellow-800"
-      case "shipped":
+      case "WAITING_FOR_PICKUP":
+        return "bg-orange-100 text-orange-800"
+      case "SHIPPING":
         return "bg-blue-100 text-blue-800"
-      default:
+      case "CANCEL_REQUESTED":
+        return "bg-purple-100 text-purple-800"
+      case "CANCELED":
         return "bg-red-100 text-red-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status.toUpperCase()) {
+      case "DELIVERED":
+        return "Delivered"
+      case "PENDING_CONFIRMATION":
+        return "Pending Confirmation"
+      case "WAITING_FOR_PICKUP":
+        return "Waiting for Pickup"
+      case "SHIPPING":
+        return "Shipping"
+      case "CANCEL_REQUESTED":
+        return "Cancellation Requested"
+      case "CANCELED":
+        return "Canceled"
+      default:
+        return status
+    }
+  }
+
+  const handleUpdateStatus = async (orderId: string, currentStatus: string) => {
+    let nextStatus = ""
+    switch (currentStatus.toUpperCase()) {
+      case "PENDING_CONFIRMATION":
+        nextStatus = "WAITING_FOR_PICKUP"
+        break
+      case "WAITING_FOR_PICKUP":
+        nextStatus = "SHIPPING"
+        break
+      case "SHIPPING":
+        nextStatus = "DELIVERED"
+        break
+      case "CANCEL_REQUESTED_APPROVE":
+        nextStatus = "CANCELED"
+        break
+      case "CANCEL_REQUESTED_REJECT":
+        nextStatus = "WAITING_FOR_PICKUP"
+        break
+      default:
+        return
+    }
+
+    try {
+      await orderApi.updateStatus(orderId, nextStatus)
+      // Refresh list
+      const res = await orderApi.getOrdersForSeller(sellerId)
+      setOrderSeller(res)
+    } catch (error) {
+      console.error("Failed to update status:", error)
     }
   }
 
@@ -163,11 +218,13 @@ export default function OrdersPage() {
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-cyan-500"
               >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="shipping">Shipping</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="all">All Statuses</option>
+                <option value="PENDING_CONFIRMATION">Pending Confirmation</option>
+                <option value="WAITING_FOR_PICKUP">Waiting for Pickup</option>
+                <option value="SHIPPING">Shipping</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="CANCEL_REQUESTED">Cancellation Requested</option>
+                <option value="CANCELED">Canceled</option>
               </select>
             </div>
           </div>
@@ -183,47 +240,74 @@ export default function OrdersPage() {
                   <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Customer</th>
                   <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Product</th>
                   <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Quantity</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Amount</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Total Price</th>
                   <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Status</th>
-                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Date</th>
+                  <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Order Date</th>
                   <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {!loading && fetchOrder.length > 0 ? (
-                  fetchOrder.map((order) => (
+                {!loading && filteredOrders.length > 0 ? (
+                  filteredOrders.map((order) => (
                     <tr key={order.orderId} className="border-b border-gray-100 hover:bg-gray-50 transition">
                       <td className="py-4 px-6 text-sm font-semibold">#{order.orderId}</td>
                       <td className="py-4 px-6 text-sm">{order.customerName}</td>
                       <td className="py-4 px-6 text-sm">{order.productName}</td>
                       <td className="py-4 px-6 text-sm">{order.quantity}</td>
-                      <td className="py-4 px-6 text-sm font-semibold">${order.price}</td>
+                      <td className="py-4 px-6 text-sm font-semibold">${(order.price * order.quantity).toLocaleString()}</td>
                       <td className="py-4 px-6">
-                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status.toLowerCase())}`}>
-                          {getStatusIcon(order.status.toLowerCase())}
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+                          {getStatusIcon(order.status)}
+                          {getStatusLabel(order.status)}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-sm text-gray-600">{formatDate(order.orderDate)}</td>
-                      <td className="py-4 px-6">
-                        <button
-                          onClick={async () => {
-                            setDetailLoading(true)
-                            setDetailOpen(true)
-                            try {
-                              const fetchDetail = await orderApi.getById(order.orderId)
-                              // const data = await getOrderDetail(order.orderId)
-                              console.log("Order detail:", fetchDetail)
-                              setSelectedOrderDetail(fetchDetail)
-                            } finally {
-                              setDetailLoading(false)
-                            }
-                          }}
-                          className="flex items-center gap-1 text-cyan-600 hover:text-cyan-700 text-sm font-semibold"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View
-                        </button>
+                      <td className="py-4 px-6 overflow-hidden">
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={async () => {
+                              setDetailLoading(true)
+                              setDetailOpen(true)
+                              try {
+                                const fetchDetail = await orderApi.getById(order.orderId)
+                                setSelectedOrderDetail(fetchDetail)
+                              } finally {
+                                setDetailLoading(false)
+                              }
+                            }}
+                            className="flex items-center gap-1 text-cyan-600 hover:text-cyan-700 text-sm font-semibold"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Details
+                          </button>
+                          {order.status.toUpperCase() === "CANCEL_REQUESTED" ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleUpdateStatus(order.orderId, "CANCEL_REQUESTED_APPROVE")}
+                                className="inline-flex items-center justify-center px-2 py-1 bg-red-500 text-white rounded-md text-[10px] font-bold hover:bg-red-600 transition"
+                              >
+                                Approve Cancel
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(order.orderId, "CANCEL_REQUESTED_REJECT")}
+                                className="inline-flex items-center justify-center px-2 py-1 bg-gray-500 text-white rounded-md text-[10px] font-bold hover:bg-gray-600 transition"
+                              >
+                                Reject Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            ["PENDING_CONFIRMATION", "WAITING_FOR_PICKUP", "SHIPPING"].includes(order.status.toUpperCase()) && (
+                              <button
+                                onClick={() => handleUpdateStatus(order.orderId, order.status)}
+                                className="inline-flex items-center justify-center px-3 py-1 bg-cyan-500 text-white rounded-md text-xs font-bold hover:bg-cyan-600 transition"
+                              >
+                                {order.status.toUpperCase() === "PENDING_CONFIRMATION" && "Confirm Order"}
+                                {order.status.toUpperCase() === "WAITING_FOR_PICKUP" && "Picked Up"}
+                                {order.status.toUpperCase() === "SHIPPING" && "Delivered"}
+                              </button>
+                            )
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -242,12 +326,15 @@ export default function OrdersPage() {
           <div className="bg-gray-50 border-t border-gray-200 px-6 py-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">
-                Showing {filteredOrders.length} of {orders.length} orders
+                Showing {filteredOrders.length} orders
               </span>
               <div className="flex gap-4 text-sm">
                 <span className="text-gray-600">
                   Total Revenue: <span className="font-semibold text-green-600">
-                    ${filteredOrders.reduce((sum, order) => sum + order.amount, 0).toLocaleString()}
+                    ${filteredOrders
+                      .filter(o => o.status.toUpperCase() === 'DELIVERED')
+                      .reduce((sum, order) => sum + (order.price * order.quantity), 0)
+                      .toLocaleString()}
                   </span>
                 </span>
               </div>
@@ -278,16 +365,16 @@ export default function OrdersPage() {
               ) : selectedOrderDetail ? (
                 <div className="space-y-6">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedOrderDetail.status.toLowerCase())}`}>
-                      {getStatusIcon(selectedOrderDetail.status.toLowerCase())}
-                      {selectedOrderDetail.status.charAt(0).toUpperCase() + selectedOrderDetail.status.slice(1)}
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedOrderDetail.status)}`}>
+                      {getStatusIcon(selectedOrderDetail.status)}
+                      {getStatusLabel(selectedOrderDetail.status)}
                     </span>
                     <span className="text-sm text-gray-600"><b>Ordered at</b>: {formatDate(selectedOrderDetail.orderDate)}</span>
                     {selectedOrderDetail.shippingAddress && (
-                      <span className="text-sm text-gray-600">, <b>Ship to</b>: {selectedOrderDetail.shippingAddress}</span>
+                      <span className="text-sm text-gray-600">, <b>Deliver to</b>: {selectedOrderDetail.shippingAddress}</span>
                     )}
                     {selectedOrderDetail.paymentMethod && (
-                      <span className="text-sm text-gray-600">, <b>Payment Method</b>: {selectedOrderDetail.paymentMethod}</span>
+                      <span className="text-sm text-gray-600">, <b>Payment</b>: {selectedOrderDetail.paymentMethod}</span>
                     )}
                     {/* {selectedOrderDetail.status && (
                       <span className="text-sm text-gray-600">, Order status: {selectedOrderDetail.status}</span>
@@ -300,14 +387,14 @@ export default function OrdersPage() {
                       <p className="text-sm text-gray-700">{selectedOrderDetail.customerName}</p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-semibold mb-2">Summary</h4>
+                      <h4 className="font-semibold mb-2">Overview</h4>
                       <p className="text-sm text-gray-700">Items: {selectedOrderDetail.items.reduce((s, i) => s + i.quantity, 0)}</p>
-                      <p className="text-sm text-gray-700">Total: ${selectedOrderDetail.totalAmount.toLocaleString()}</p>
+                      <p className="text-sm text-gray-700">Total Amount: ${selectedOrderDetail.totalAmount.toLocaleString()}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="font-semibold mb-2">Items</h4>
+                    <h4 className="font-semibold mb-2">Order Items</h4>
                     <div className="border rounded-lg overflow-hidden">
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50">
@@ -315,7 +402,7 @@ export default function OrdersPage() {
                             <th className="text-left py-2 px-3">Product</th>
                             <th className="text-left py-2 px-3">Qty</th>
                             <th className="text-left py-2 px-3">Price</th>
-                            <th className="text-left py-2 px-3">Subtotal</th>
+                            <th className="text-left py-2 px-3">Total</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -334,7 +421,7 @@ export default function OrdersPage() {
 
                   <div className="flex justify-end">
                     <button
-                      onClick={() => { setDetailOpen(false); setSelectedOrder(null) }}
+                      onClick={() => { setDetailOpen(false); setSelectedOrderDetail(null) }}
                       className="bg-cyan-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-cyan-700 transition"
                     >
                       Close

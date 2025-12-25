@@ -10,7 +10,9 @@ interface User {
   username: string
   email?: string
   role: UserRole
-  name?: string
+  fullname?: string
+  phone?: string
+  address?: string
 }
 
 interface AuthContextType {
@@ -42,13 +44,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         : userData.role === "SELLER"
           ? "seller"
           : "admin"
+      const userId = userData.id || (userData as any).Id
       setUser({
-        id: userData.Id,
+        id: userId,
         username: userData.username,
         role: role as UserRole,
-        name: userData.fullname,
+        fullname: userData.fullname,
+        email: (userData as any).email,
+        phone: (userData as any).phone,
+        address: (userData as any).address,
       })
-      console.log("id = " + userData.Id)
+      console.log("Authenticated user ID:", userId)
       setIsAuthenticated(true)
     } catch (error) {
       setIsAuthenticated(false)
@@ -67,10 +73,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ? "seller"
           : "admin"
       const userData: User = {
-        id: "", // Will be fetched from getCurrentUser
+        id: "", // Will be fetched from refreshUser -> getCurrentUser
         username: response.username,
         role: role as UserRole,
-        name: response.fullname,
+        fullname: response.fullname,
       }
       // Save token to localStorage
       if (response.token) {
@@ -105,11 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         : userData.role === "SELLER"
           ? "seller"
           : "admin"
+      const userId = userData.id || (userData as any).Id
       setUser({
-        id: userData.Id,
+        id: userId,
         username: userData.username,
         role: role as UserRole,
-        name: userData.fullname,
+        fullname: userData.fullname,
+        email: (userData as any).email,
+        phone: (userData as any).phone,
+        address: (userData as any).address,
       })
       setIsAuthenticated(true)
     } catch (error) {

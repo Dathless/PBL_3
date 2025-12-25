@@ -23,13 +23,13 @@ export default function BrandPage() {
   const rawName = name || ""
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
- 
+
   const key = rawName.toLowerCase().replace(/[^a-z0-9]/g, "")
 
   // Load products from backend
   useEffect(() => {
 
-    if (!rawName){
+    if (!rawName) {
       setProducts([]);
       setLoading(false);
       return;
@@ -54,7 +54,7 @@ export default function BrandPage() {
         setLoading(false)
       }
     }
-    
+
     loadProducts()
   }, [rawName])
   // Build a readable display name from the raw param (preserve &, spaces for UX if present)
@@ -96,6 +96,7 @@ export default function BrandPage() {
       return
     }
     addToCart({
+      id: product.id,
       productId: product.id,
       name: product.name,
       price: product.price,
@@ -149,42 +150,42 @@ export default function BrandPage() {
         ) : products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((p) => (
-            <div key={p.id} className="group">
-              <Link to={`/product/${p.id}`} className="block">
-                <div className="bg-gray-100 rounded-lg aspect-square mb-3 overflow-hidden">
-                  <img
-                    src={p.image || "/placeholder.svg"}
-                    alt={p.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition"
-                  />
+              <div key={p.id} className="group">
+                <Link to={`/product/${p.id}`} className="block">
+                  <div className="bg-gray-100 rounded-lg aspect-square mb-3 overflow-hidden">
+                    <img
+                      src={p.image || "/placeholder.svg"}
+                      alt={p.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition"
+                    />
+                  </div>
+                  <h3 className="font-semibold text-sm text-gray-800 group-hover:text-cyan-600 transition line-clamp-2">
+                    {p.name}
+                  </h3>
+                  <p className="text-red-600 font-bold">${p.price}</p>
+                </Link>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleBuy(p)
+                    }}
+                    className="text-xs bg-cyan-500 text-white py-1.5 rounded-full font-bold hover:bg-cyan-600 transition text-center"
+                  >
+                    BUY
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleAddToCart(p)
+                    }}
+                    className="text-xs border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                  >
+                    <ShoppingCart className="w-3 h-3" />
+                    ADD
+                  </button>
                 </div>
-                <h3 className="font-semibold text-sm text-gray-800 group-hover:text-cyan-600 transition line-clamp-2">
-                  {p.name}
-                </h3>
-                <p className="text-red-600 font-bold">${p.price}</p>
-              </Link>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    handleBuy(p)
-                  }}
-                  className="text-xs bg-cyan-500 text-white py-1.5 rounded-full font-bold hover:bg-cyan-600 transition text-center"
-                >
-                  BUY
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    handleAddToCart(p)
-                  }}
-                  className="text-xs border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold hover:bg-blue-50 transition flex items-center justify-center gap-1"
-                >
-                  <ShoppingCart className="w-3 h-3" />
-                  ADD
-                </button>
               </div>
-            </div>
             ))}
           </div>
         ) : (

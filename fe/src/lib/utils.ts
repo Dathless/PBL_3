@@ -15,7 +15,7 @@ export function formatDate(dateString: string): string {
   const seconds = pad(date.getSeconds());
 
   const day = pad(date.getDate());
-  const month = pad(date.getMonth() + 1); // tháng bắt đầu từ 0
+  const month = pad(date.getMonth() + 1); // month starts from 0
   const year = date.getFullYear();
 
   return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;

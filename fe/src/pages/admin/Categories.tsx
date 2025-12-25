@@ -21,7 +21,7 @@ export default function Categories() {
       const data = await categoryApi.getAll()
       setCategories(data)
     } catch (err: any) {
-      setError(err.message || "Không thể tải danh sách danh mục")
+      setError(err.message || "Failed to load categories")
     } finally {
       setLoading(false)
     }

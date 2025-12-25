@@ -25,8 +25,8 @@ interface Product {
   name: string
   price: number
   image: string
-  originalPrice: number 
-  discount: number 
+  originalPrice: number
+  discount: number
 }
 
 export default function CategoryPage() {
@@ -53,20 +53,20 @@ export default function CategoryPage() {
     const loadProducts = async () => {
       try {
         setLoading(true)
-        // 🛠️ FIX: Use new API to get products by category name
+        // FIX: Use new API to get products by category name
         const fetchedProducts = await productApi.getByCategoryName(categoryKey);
-        
-        // 🛠️ SỬA: Mapping dữ liệu trả về từ API
+
+        // Mapping data returned from API
         const products: Product[] = fetchedProducts.map((p: any) => ({
           id: p.id,
           name: p.name,
           price: Number(p.price) || 0,
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
-          // Đảm bảo các trường này tồn tại hoặc có giá trị mặc định
+          // Ensure these fields exist or have default values
           originalPrice: Number(p.originalPrice) || Number(p.price) * 1.3,
           discount: Number(p.discount) || 0,
         }))
-        
+
         setCategoryProducts(products)
       } catch (error) {
         console.error("Error loading products:", error)
@@ -75,7 +75,7 @@ export default function CategoryPage() {
         setLoading(false)
       }
     }
-    
+
     loadProducts()
   }, [categoryKey])
 
@@ -121,7 +121,7 @@ export default function CategoryPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4 uppercase">{category.name}</h1>
-            <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">
                 Showing: <strong>{categoryProducts.length} Products</strong>

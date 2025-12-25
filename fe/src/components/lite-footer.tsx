@@ -8,10 +8,11 @@ export function LiteFooter() {
           {/* About */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold">●</span>
-              </div>
-              <span className="text-white font-bold text-lg">LITE</span>
+              <img
+                src="/logo-new.png"
+                alt="LITE"
+                className="h-16 w-auto"
+              />
             </div>
             <p className="text-sm text-gray-400 mb-4">
               Your trusted online shopping destination for premium brands and products.

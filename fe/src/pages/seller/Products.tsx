@@ -8,7 +8,7 @@ import {
   ShoppingCart
 } from "lucide-react"
 import SellerLayout from "./SellerLayout"
-import { productApi, categoryApi } from "@/lib/api"
+import { productApi, categoryApi, fileApi } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 
 interface Product {
@@ -16,6 +16,7 @@ interface Product {
   name: string
   description?: string
   price: number
+  discount?: number
   stock: number
   category: string
   categoryId: number
@@ -25,6 +26,7 @@ interface Product {
   brand?: string
   rejectionReason?: string
   images?: Array<{ id: number; imageUrl: string; altText?: string }>
+  variants?: Array<{ id: string; size: string; stock: number }>
 }
 
 export default function ProductsPage() {
@@ -36,10 +38,10 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Array<{ id: number; name: string }>>([])
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ name: "", price: "", stock: "", categoryId: "", description: "", brand: "", color: "", imageUrl: "" })
+  const [form, setForm] = useState({ name: "", price: "", stock: "", categoryId: "", description: "", brand: "", color: "", imageUrl: "", discount: "" })
   const [addSizes, setAddSizes] = useState<string[]>([])
   const [addColors, setAddColors] = useState<string[]>([])
-  const [editForm, setEditForm] = useState<{ id: string; name: string; price: string; stock: string; categoryId: string; size?: string; color?: string; imageUrl?: string; description?: string } | null>(null)
+  const [editForm, setEditForm] = useState<{ id: string; name: string; price: string; stock: string; categoryId: string; size?: string; color?: string; imageUrl?: string; description?: string; discount?: string } | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editSizes, setEditSizes] = useState<string[]>([])
   const [editColors, setEditColors] = useState<string[]>([])
@@ -48,6 +50,10 @@ export default function ProductsPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  // State for EDIT image upload
+  const [editSelectedFiles, setEditSelectedFiles] = useState<File[]>([]);
+  const [editImagePreviews, setEditImagePreviews] = useState<string[]>([]);
 
   const sizeOptions: Record<string, string[]> = {
     Shoes: ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"],
@@ -74,7 +80,7 @@ export default function ProductsPage() {
     loadCategories()
   }, [])
 
-  // Xử lý khi chọn file ảnh
+  // Handle file change for image selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -97,57 +103,38 @@ export default function ProductsPage() {
     setSelectedFiles(newFiles);
   };
 
-  // Tải ảnh lên server
-  const uploadImages = async (files: File[]): Promise<string[]> => {
-    const attempt = async (formData: FormData) => {
-      const response = await fetch('http://localhost:8080/api/files/upload-multiple', {
-        method: 'POST',
-        body: formData,
-      });
+  // Handle EDIT file change
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-      // Read body text once to avoid "body disturbed or locked" errors
-      const bodyText = await response.text();
+    const newFiles = Array.from(files);
+    setEditSelectedFiles(prev => [...prev, ...newFiles]);
 
-      if (!response.ok) {
-        // Try to parse JSON from the text, otherwise return raw text
-        try {
-          const errorData = JSON.parse(bodyText);
-          const msg = (errorData && (errorData.message || errorData.error || errorData.status)) ? (errorData.message || errorData.error || JSON.stringify(errorData)) : response.statusText;
-          throw new Error(msg || `Upload failed: ${response.status}`);
-        } catch {
-          throw new Error(bodyText || response.statusText || `Upload failed: ${response.status}`);
-        }
+    // Create preview URL
+    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    setEditImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  // Remove EDIT image
+  const removeEditImage = (index: number) => {
+    const previewToRemove = editImagePreviews[index];
+    const newPreviews = [...editImagePreviews];
+    newPreviews.splice(index, 1);
+    setEditImagePreviews(newPreviews);
+
+    // If it's a blob url (newly uploaded), remove from selected files
+    if (previewToRemove.startsWith('blob:')) {
+      let blobCount = 0;
+      for (let i = 0; i < index; i++) {
+        if (editImagePreviews[i].startsWith('blob:')) blobCount++;
       }
-
-      // Success: parse JSON from the body text
-      try {
-        const data = JSON.parse(bodyText);
-        if (data.fileDownloadUris && Array.isArray(data.fileDownloadUris)) return data.fileDownloadUris;
-        if (data.files && Array.isArray(data.files)) return data.files.map((f: any) => f.fileDownloadUri || f.fileDownloadUri || '').filter(Boolean);
-        if (Array.isArray(data)) return data;
-      } catch {
-        // If parsing fails, return empty list
-      }
-      return [];
-    };
-
-    // First try with field name 'files', then fallback to 'files[]' if needed
-    try {
-      const formData1 = new FormData();
-      files.forEach(file => formData1.append('files', file));
-      return await attempt(formData1);
-    } catch (err1) {
-      console.warn('uploadImages: first attempt with "files" failed, retrying with "files[]"', err1);
-      try {
-        const formData2 = new FormData();
-        files.forEach(file => formData2.append('files[]', file));
-        return await attempt(formData2);
-      } catch (err2) {
-        console.error('uploadImages: both attempts failed', err2);
-        throw err2;
-      }
+      const newFiles = [...editSelectedFiles];
+      newFiles.splice(blobCount, 1);
+      setEditSelectedFiles(newFiles);
     }
   };
+
 
   // Load products from backend - filter by seller_id
   useEffect(() => {
@@ -234,8 +221,18 @@ export default function ProductsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold mb-2">Products</h2>
-            <p className="text-gray-600">Manage your product inventory</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="bg-cyan-500 text-white w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg">
+                {user?.fullname?.charAt(0).toUpperCase() || 'S'}
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold">Products</h2>
+                <p className="text-gray-600">
+                  Welcome, <span className="font-semibold text-cyan-600">{user?.fullname || user?.username || 'Seller'}</span>
+                </p>
+              </div>
+            </div>
+            <p className="text-gray-500 text-sm">Manage your product inventory</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
@@ -297,7 +294,21 @@ export default function ProductsPage() {
                 )}
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-cyan-600 font-semibold">${product.price}</span>
-                  <span className="text-sm text-gray-600">Stock: {product.stock}</span>
+                  <span className="text-sm text-gray-600">Total Stock: {product.stock}</span>
+                </div>
+                <div className="mb-2">
+                  <p className="text-xs font-semibold text-gray-500 mb-1">Stock per Size:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {product.variants && product.variants.length > 0 ? (
+                      product.variants.map(v => (
+                        <span key={v.id} title={`Stock: ${v.stock}`} className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] text-gray-700">
+                          Size {v.size}: <strong>{v.stock}</strong>
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[10px] text-gray-400">No variant info</span>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
                   Category: {categories.find(c => c.id === product.categoryId)?.name || "Unknown"}
@@ -307,6 +318,7 @@ export default function ProductsPage() {
                     onClick={() => {
                       const sizes = parseJsonArray(product.size)
                       const colors = parseJsonArray(product.color)
+                      const currentImages = product.images?.map(img => img.imageUrl) || [];
                       setEditForm({
                         id: product.id,
                         name: product.name,
@@ -317,9 +329,13 @@ export default function ProductsPage() {
                         color: product.color,
                         imageUrl: product.images && product.images.length > 0 ? product.images[0].imageUrl : "",
                         description: product.description || "",
+                        discount: String(product.discount || 0),
                       })
                       setEditSizes(sizes)
                       setEditColors(colors)
+                      // Initialize images
+                      setEditImagePreviews(currentImages);
+                      setEditSelectedFiles([]);
                       setShowEditModal(true)
                     }}
                     className="flex-1 flex items-center justify-center gap-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition text-sm font-semibold"
@@ -408,7 +424,7 @@ export default function ProductsPage() {
                     // Upload images if any files are selected
                     if (selectedFiles.length > 0) {
                       try {
-                        imageUrls = await uploadImages(selectedFiles);
+                        imageUrls = await fileApi.uploadMultiple(selectedFiles);
                       } catch (error) {
                         console.error('Error uploading images:', error);
                         toast({
@@ -434,7 +450,7 @@ export default function ProductsPage() {
                       price: Number(form.price || 0),
                       stock: Number(form.stock || 0),
                       brand: form.brand,
-                      discount: 0,
+                      discount: Number(form.discount || 0),
                       rating: 0,
                       reviews: 0,
                       size: sizeJson,
@@ -477,7 +493,8 @@ export default function ProductsPage() {
                       description: "",
                       brand: "",
                       color: "",
-                      imageUrl: ""
+                      imageUrl: "",
+                      discount: ""
                     });
                     setAddSizes([]);
                     setAddColors([]);
@@ -522,6 +539,19 @@ export default function ProductsPage() {
                     required
                     min={0}
                     step={0.01}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Discount (%)</label>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500"
+                    placeholder="Enter discount percentage (0-100)"
+                    value={form.discount}
+                    onChange={(e) => setForm({ ...form, discount: e.target.value })}
+                    min={0}
+                    max={100}
+                    step={0.1}
                   />
                 </div>
                 <div>
@@ -586,7 +616,7 @@ export default function ProductsPage() {
                 <div>
                   <label className="block text-sm font-semibold mb-2">Product Images</label>
 
-                  {/* Phần chọn file */}
+                  {/* File selection part */}
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center mb-3">
                     <input
                       type="file"
@@ -629,7 +659,7 @@ export default function ProductsPage() {
                     ))}
                   </div>
 
-                  {/* Nhập URL ảnh (dự phòng) */}
+                  {/* Image URL input (fallback) */}
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Or enter image URL:</p>
                     <input
@@ -721,34 +751,52 @@ export default function ProductsPage() {
                     const sizeJson = createJsonArray(editSizes)
                     const colorJson = createJsonArray(editColors)
 
-                    // Format image URL: "/" + filename + extension
-                    let imageUrl = (editForm.imageUrl || "").trim()
-                    if (imageUrl && !imageUrl.startsWith("/")) {
-                      // Extract filename and extension
-                      const lastSlash = imageUrl.lastIndexOf("/")
-                      const filename = lastSlash >= 0 ? imageUrl.substring(lastSlash + 1) : imageUrl
-                      imageUrl = "/" + filename
+                    let imageUrls: string[] = []
+
+                    // Keep existing images (that were not removed)
+                    const existingImages = editImagePreviews.filter(url => !url.startsWith('blob:'))
+                    imageUrls = [...existingImages]
+
+                    // Upload new images
+                    if (editSelectedFiles.length > 0) {
+                      setIsUploading(true)
+                      try {
+                        const newUploadedUrls = await fileApi.uploadMultiple(editSelectedFiles)
+                        imageUrls = [...imageUrls, ...newUploadedUrls]
+                      } catch (error: any) {
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to upload new images",
+                          variant: "destructive",
+                        })
+                        setIsUploading(false)
+                        return
+                      }
                     }
 
-                    const images = imageUrl ? [{
-                      imageUrl: imageUrl,
-                      altText: editForm.name,
-                    }] : []
+                    // Fallback to single imageUrl if no images and provided
+                    if (imageUrls.length === 0 && editForm.imageUrl) {
+                      imageUrls = [editForm.imageUrl]
+                    }
 
                     await productApi.update(editForm.id, {
                       name: editForm.name,
                       description: editForm.description || "",
                       price: Number(editForm.price || 0),
+                      discount: Number(editForm.discount || 0),
                       stock: Number(editForm.stock || 0),
                       size: sizeJson,
                       color: colorJson,
                       status: "AVAILABLE",
                       categoryId: Number(editForm.categoryId),
-                      images: images,
+                      images: imageUrls.map(url => ({
+                        imageUrl: url,
+                        altText: editForm.name,
+                      })),
                     })
 
                     // Reload products - filter by seller_id
-                    const allProducts = await productApi.getAll()
+                    const allProducts = await productApi.getAll("ALL")
                     const sellerProducts = allProducts.filter((p: any) => {
                       return p.sellerId === user.id || (p.seller && p.seller.id === user.id)
                     })
@@ -804,6 +852,18 @@ export default function ProductsPage() {
                     required
                     min={0}
                     step={0.01}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Discount (%)</label>
+                  <input
+                    type="number"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500"
+                    value={editForm.discount || "0"}
+                    onChange={(e) => setEditForm({ ...editForm, discount: e.target.value })}
+                    min={0}
+                    max={100}
+                    step={0.1}
                   />
                 </div>
                 <div>
@@ -875,7 +935,51 @@ export default function ProductsPage() {
                   <p className="text-xs text-gray-500 mt-1">Enter colors separated by comma. Data will be saved as JSON array.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Image URL</label>
+                  <label className="block text-sm font-semibold mb-2">Product Images</label>
+                  {/* File selection part */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center mb-3">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleEditFileChange}
+                      className="hidden"
+                      id="edit-image-upload"
+                      disabled={isUploading}
+                    />
+                    <label
+                      htmlFor="edit-image-upload"
+                      className={`cursor-pointer ${isUploading ? 'opacity-50' : 'hover:text-cyan-700'} text-cyan-600 font-medium`}
+                    >
+                      <Plus className="w-6 h-6 mx-auto mb-2" />
+                      <span>Click to upload image</span>
+                      <p className="text-xs text-gray-500 mt-1">or drag and drop image here</p>
+                    </label>
+                  </div>
+
+                  {/* Preview selected images */}
+                  <div className="flex flex-wrap gap-3 mb-3">
+                    {editImagePreviews.map((preview, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={preview}
+                          alt={`Preview ${index}`}
+                          className="w-20 h-20 object-cover rounded border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeEditImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          disabled={isUploading}
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <label className="block text-sm font-semibold mb-2">Or Image URL</label>
                   <input
                     type="text"
                     className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-cyan-500"

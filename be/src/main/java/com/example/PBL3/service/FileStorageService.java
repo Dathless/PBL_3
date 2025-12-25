@@ -1,13 +1,13 @@
 package com.example.PBL3.service;
 
-import com.example.PBL3.config.FileStorageProperties;  
+import com.example.PBL3.config.FileStorageProperties;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -20,14 +20,15 @@ import java.util.UUID;
 @Service
 public class FileStorageService {
     private final Path fileStorageLocation;
-    private static final String[] ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "xls", "xlsx"};
+    private static final String[] ALLOWED_EXTENSIONS = { "jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "xls",
+            "xlsx" };
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
     public FileStorageService(FileStorageProperties fileStorageProperties) {
         this.fileStorageLocation = Paths.get(fileStorageProperties.getUploadDir())
                 .toAbsolutePath().normalize();
     }
-    
+
     @PostConstruct
     public void init() {
         try {
@@ -67,22 +68,23 @@ public class FileStorageService {
             }
         }
         if (!isValidExtension) {
-            throw new RuntimeException("Định dạng file không được hỗ trợ. Chỉ chấp nhận: " + String.join(", ", ALLOWED_EXTENSIONS));
+            throw new RuntimeException(
+                    "Định dạng file không được hỗ trợ. Chỉ chấp nhận: " + String.join(", ", ALLOWED_EXTENSIONS));
         }
 
         // Generate unique file name
         String fileName = UUID.randomUUID().toString() + "." + fileExtension;
-        
+
         try {
             // Create target directory if not exists
             if (!Files.exists(this.fileStorageLocation)) {
                 Files.createDirectories(this.fileStorageLocation);
             }
-            
+
             // Copy file to target location
             Path targetLocation = this.fileStorageLocation.resolve(fileName);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            
+
             return fileName;
         } catch (IOException ex) {
             throw new RuntimeException("Không thể lưu file " + originalFileName + ". Vui lòng thử lại!", ex);
@@ -93,7 +95,7 @@ public class FileStorageService {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
-            
+
             if (resource.exists()) {
                 return resource;
             } else {
@@ -103,7 +105,7 @@ public class FileStorageService {
             throw new RuntimeException("Lỗi khi tải file " + fileName, ex);
         }
     }
-    
+
     public boolean deleteFile(String fileName) {
         try {
             Path filePath = this.fileStorageLocation.resolve(fileName).normalize();

@@ -14,9 +14,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "payments")
-//@Data
-//@NoArgsConstructor
-//@AllArgsConstructor
+// @Data
+// @NoArgsConstructor
+// @AllArgsConstructor
 public class Payment {
     @Id
     @UuidGenerator
@@ -35,10 +35,10 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "ENUM('PENDING', 'COMPLETED', 'FAILED') DEFAULT 'PENDING'")
-    private PaymentStatus status =  PaymentStatus.PENDING ;
+    private PaymentStatus status = PaymentStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('COD','EWALLET')")
+    @Column(nullable = false, columnDefinition = "ENUM('COD','EWALLET','BANK_TRANSFER','E_WALLET','BANK_CARD')")
     private PaymentMethod method;
 
     @CreationTimestamp

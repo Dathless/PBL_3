@@ -117,7 +117,8 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
     }
 
     addToCart({
-      id: product.id.toString(),
+      id: Math.random().toString(36).substr(2, 9),
+      productId: product.id.toString(),
       name: product.name,
       price: product.price,
       image: product.image,
@@ -149,7 +150,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-bold">Added to cart </h2>
+            <h2 className="text-lg font-bold">Add to Cart</h2>
             <button
               onClick={onClose}
               className="p-1 hover:bg-gray-100 rounded-full transition"
@@ -169,7 +170,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
               />
               <div className="flex-1">
                 <h3 className="font-semibold text-sm mb-1">{product.name}</h3>
-                <p className="text-lg font-bold text-cyan-600">SAR {product.price.toLocaleString()}</p>
+                <p className="text-lg font-bold text-cyan-600">${product.price.toLocaleString()}</p>
               </div>
             </div>
 
@@ -184,11 +185,10 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
-                      className={`px-4 py-2 rounded-lg border-2 transition ${
-                        selectedColor === color
-                          ? "border-cyan-600 bg-cyan-50 text-cyan-600 font-semibold"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
+                      className={`px-4 py-2 rounded-lg border-2 transition ${selectedColor === color
+                        ? "border-cyan-600 bg-cyan-50 text-cyan-600 font-semibold"
+                        : "border-gray-300 hover:border-gray-400"
+                        }`}
                     >
                       {color}
                     </button>
@@ -208,11 +208,10 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 rounded-lg border-2 transition ${
-                        selectedSize === size
-                          ? "border-cyan-600 bg-cyan-50 text-cyan-600 font-semibold"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
+                      className={`px-4 py-2 rounded-lg border-2 transition ${selectedSize === size
+                        ? "border-cyan-600 bg-cyan-50 text-cyan-600 font-semibold"
+                        : "border-gray-300 hover:border-gray-400"
+                        }`}
                     >
                       {size}
                     </button>
@@ -226,7 +225,7 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
               onClick={handleAddToCart}
               className="w-full bg-cyan-600 text-white py-3 rounded-lg font-semibold hover:bg-cyan-700 transition"
             >
-              Added to cart 
+              Add to Cart
             </button>
           </div>
         </div>

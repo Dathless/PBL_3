@@ -9,7 +9,7 @@ import {
   Shield
 } from "lucide-react"
 import SellerLayout from "./SellerLayout"
-import { getSellerProfile, updateSellerProfile, getSellerBusiness, updateSellerBusiness } from "@/lib/sellerApi"
+import { getSellerProfile, updateSellerProfile, getSellerBusiness } from "@/lib/sellerApi"
 
 export default function SettingsPage() {
   const { user } = useAuth()
@@ -19,7 +19,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
 
   // Mock settings data
-  const [profile, setProfile] = useState({ name: user?.name || "", email: user?.email || "", phone: "", address: "" })
+  const [profile, setProfile] = useState({ name: user?.fullname || "", email: user?.email || "", phone: "", address: "" })
 
   const [business, setBusiness] = useState({ businessName: "", taxId: "", description: "" })
 
@@ -83,11 +83,10 @@ export default function SettingsPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                      activeTab === tab.id
-                        ? "bg-cyan-50 text-cyan-600 font-semibold"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === tab.id
+                      ? "bg-cyan-50 text-cyan-600 font-semibold"
+                      : "text-gray-700 hover:bg-gray-100"
+                      }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{tab.label}</span>

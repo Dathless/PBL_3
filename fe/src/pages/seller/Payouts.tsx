@@ -1,39 +1,91 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { payoutApi } from "@/lib/api"
 import {
   DollarSign,
   Download,
-  Calendar,
-  TrendingUp
+  TrendingUp,
+  Loader2,
+  RefreshCcw
 } from "lucide-react"
 import SellerLayout from "./SellerLayout"
+import { toast } from "sonner"
+import { syncBalance } from "@/lib/sellerApi"
 
 export default function PayoutsPage() {
   const { user } = useAuth()
   const [activeMenu, setActiveMenu] = useState("payouts")
+  const [loading, setLoading] = useState(true)
+  const [payouts, setPayouts] = useState<any[]>([])
+  const [stats, setStats] = useState({
+    totalEarnings: 0,
+    currentBalance: 0,
+    pendingPayout: 0,
+    completedPayouts: 0
+  })
+  const [syncing, setSyncing] = useState(false)
 
-  // Mock payout data
-  const payouts = [
-    { id: 1, amount: 12500, status: "completed", date: "2024-01-15", method: "Bank Transfer" },
-    { id: 2, amount: 8900, status: "pending", date: "2024-01-20", method: "Bank Transfer" },
-    { id: 3, amount: 15200, status: "completed", date: "2024-01-10", method: "PayPal" },
-    { id: 4, amount: 6700, status: "processing", date: "2024-01-18", method: "Bank Transfer" },
-  ]
+  useEffect(() => {
+    if (user?.id) {
+      fetchData()
+    }
+  }, [user?.id])
 
-  const stats = {
-    totalEarnings: 125000,
-    pendingPayout: 8900,
-    completedPayouts: 116100,
-    nextPayout: "2024-01-25"
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const [payoutsData, statsData] = await Promise.all([
+        payoutApi.getBySeller(user!.id),
+        payoutApi.getStats(user!.id)
+      ])
+      setPayouts(payoutsData)
+      setStats(statsData)
+    } catch (error) {
+      console.error("Failed to fetch payout data:", error)
+      toast.error("Failed to load payout data")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRequestPayout = async () => {
+    // For now, simple prompt or just request all available balance
+    // In a real app, you'd have a modal
+    if (stats.currentBalance <= 0) {
+      toast.error("No balance available to withdraw")
+      return
+    }
+
+    try {
+      await payoutApi.request(user!.id, stats.currentBalance, "Bank Transfer")
+      toast.success("Payout requested successfully")
+      fetchData()
+    } catch (error) {
+      toast.error("Failed to request payout")
+    }
+  }
+
+  const handleSyncBalance = async () => {
+    try {
+      setSyncing(true)
+      await syncBalance(user!.id)
+      toast.success("Balance synchronized successfully")
+      await fetchData()
+    } catch (error) {
+      console.error("Failed to sync balance:", error)
+      toast.error("Failed to synchronize balance")
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
+      case "COMPLETED":
         return "bg-green-100 text-green-800"
-      case "pending":
+      case "PENDING":
         return "bg-yellow-100 text-yellow-800"
-      case "processing":
+      case "PROCESSED":
         return "bg-blue-100 text-blue-800"
       default:
         return "bg-gray-100 text-gray-800"
@@ -48,17 +100,46 @@ export default function PayoutsPage() {
     )
   }
 
+  if (loading) {
+    return (
+      <SellerLayout activeMenu={activeMenu} setActiveMenu={setActiveMenu}>
+        <div className="flex justify-center items-center h-screen">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </SellerLayout>
+    )
+  }
+
   return (
     <SellerLayout activeMenu={activeMenu} setActiveMenu={setActiveMenu}>
       <div className="p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Payouts</h2>
-          <p className="text-gray-600">Manage your earnings and payouts</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">Payouts</h2>
+            <p className="text-gray-600">Manage your earnings and payouts</p>
+          </div>
+          <div className="flex gap-4">
+            <button
+              onClick={handleSyncBalance}
+              className="flex items-center gap-2 border border-black text-black px-4 py-2 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+              disabled={syncing}
+            >
+              <RefreshCcw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync Balance'}
+            </button>
+            <button
+              onClick={handleRequestPayout}
+              className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition disabled:opacity-50"
+              disabled={stats.currentBalance <= 0}
+            >
+              Request Payout (${stats.currentBalance.toLocaleString()})
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-gray-600 text-sm font-medium">Total Earnings</h3>
@@ -81,14 +162,6 @@ export default function PayoutsPage() {
               <DollarSign className="w-5 h-5 text-blue-500" />
             </div>
             <p className="text-2xl font-bold">${stats.completedPayouts.toLocaleString()}</p>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600 text-sm font-medium">Next Payout</h3>
-              <Calendar className="w-5 h-5 text-purple-500" />
-            </div>
-            <p className="text-2xl font-bold">{stats.nextPayout}</p>
           </div>
         </div>
 
@@ -114,19 +187,25 @@ export default function PayoutsPage() {
                 </tr>
               </thead>
               <tbody>
-                {payouts.map((payout) => (
-                  <tr key={payout.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
-                    <td className="py-4 px-6 text-sm font-semibold">#{payout.id}</td>
-                    <td className="py-4 px-6 text-sm font-semibold">${payout.amount.toLocaleString()}</td>
-                    <td className="py-4 px-6 text-sm">{payout.method}</td>
-                    <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(payout.status)}`}>
-                        {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-gray-600">{payout.date}</td>
+                {payouts.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">No payout history found</td>
                   </tr>
-                ))}
+                ) : (
+                  payouts.map((payout) => (
+                    <tr key={payout.id} className="border-b border-gray-100 hover:bg-gray-50 transition">
+                      <td className="py-4 px-6 text-sm font-semibold">...{payout.id.slice(-8)}</td>
+                      <td className="py-4 px-6 text-sm font-semibold">${payout.amount.toLocaleString()}</td>
+                      <td className="py-4 px-6 text-sm">{payout.method}</td>
+                      <td className="py-4 px-6">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(payout.status)}`}>
+                          {payout.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-sm text-gray-600">{new Date(payout.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

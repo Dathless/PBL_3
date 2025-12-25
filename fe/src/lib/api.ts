@@ -4,48 +4,66 @@ const API_BASE_URL = 'http://localhost:8080/api'
 function getAuthToken(): string | null {
   if (typeof window !== 'undefined') {
     const localToken = localStorage.getItem('token')
-    if (localToken) return localToken
+    if (localToken) return localToken.trim()
   }
 
   const cookies = document.cookie.split(';')
   for (let cookie of cookies) {
-    const [name, value] = cookie.trim().split('=')
-    if (name === 'token') {
-      return value
+    const parts = cookie.trim().split('=')
+    if (parts.length === 2) {
+      const [name, value] = parts
+      if (name.trim() === 'token') {
+        return value.trim()
+      }
     }
   }
   return null
 }
 
 // Helper function to make API requests
-async function apiRequest<T>(
+export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const token = getAuthToken()
-  const headers: HeadersInit = {
+  const headers = new Headers({
     'Content-Type': 'application/json',
-    ...options.headers,
+  })
+
+  // Add options headers if provided
+  if (options.headers) {
+    Object.entries(options.headers).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        headers.set(key, String(value).trim())
+      }
+    })
   }
 
   if (token) {
-    // Note: We can't set cookies manually, they come from backend
-    // But we can include token in Authorization header if needed
-    (headers as any)['Authorization'] = `Bearer ${token}`
+    headers.set('Authorization', `Bearer ${token}`)
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
-    credentials: 'include', // Important for cookies
+    credentials: 'include',
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: response.statusText }))
-    throw new Error(error.message || `HTTP error! status: ${response.status}`)
+    const errorText = await response.text().catch(() => "")
+    console.error(`API Error: ${response.status} - ${errorText}`)
+    let errorMessage = `HTTP error! status: ${response.status}`
+    try {
+      const errorJson = JSON.parse(errorText)
+      errorMessage = errorJson.message || errorJson.error || errorMessage
+    } catch (e) {
+      if (errorText) errorMessage = errorText
+    }
+    throw new Error(errorMessage)
   }
 
-  return response.json()
+  const text = await response.text()
+  return text ? JSON.parse(text) : {} as T
 }
 
 // Auth APIs
@@ -70,7 +88,8 @@ export const authApi = {
 
   getCurrentUser: async () => {
     return apiRequest<{
-      Id: string
+      id: string
+      Id?: string
       fullname: string
       username: string
       role: string
@@ -134,14 +153,27 @@ export interface ApiProduct {
   name: string
   description: string
   price: number
+  discount: number
   stock: number
   size: string
   color: string
   status: string
   categoryId: number
   categoryName: string
-  sellerId: string
+  rejectionReason?: string;
+  sellerId?: string;
+  seller?: {
+    id: string;
+    fullname: string;
+    email?: string;
+  };
+  variants?: Array<{
+    id: string;
+    size: string;
+    stock: number;
+  }>;
   images: Array<{ id: number; imageUrl: string; altText?: string }>
+  createdAt?: string
 }
 // Product APIs
 export const productApi = {
@@ -161,6 +193,9 @@ export const productApi = {
   },
   delete: async (id: string) => {
     return apiRequest(`/products/${id}`, { method: 'DELETE' })
+  },
+  getBySeller: async (sellerId: string) => {
+    return apiRequest<ApiProduct[]>(`/products/seller/${sellerId}`)
   },
   // Lấy danh sách sản phẩm chờ phê duyệt
   getPendingProducts: async () => {
@@ -222,6 +257,7 @@ export const productApi = {
       name: string
       description: string
       price: number
+      discount?: number
       stock: number
       size: string
       color: string
@@ -237,6 +273,22 @@ export const productApi = {
       method: 'PUT',
       body: JSON.stringify(productData),
     })
+  },
+
+  getVariantStock: async (productId: string, color?: string, size?: string) => {
+    const params = new URLSearchParams()
+    if (color) params.append('color', color)
+    if (size) params.append('size', size)
+    const query = params.toString() ? `?${params.toString()}` : ''
+    return apiRequest<{ stock: number }>(`/products/${productId}/variant-stock${query}`)
+  },
+
+  getDiscounted: async () => {
+    return apiRequest<ApiProduct[]>('/products/discounted')
+  },
+
+  getTopSelling: async (limit: number = 5) => {
+    return apiRequest<ApiProduct[]>(`/products/top-selling?limit=${limit}`)
   },
 }
 
@@ -304,6 +356,12 @@ export const cartApi = {
       method: 'DELETE',
     })
   },
+
+  clearCart: async (cartId: string) => {
+    return apiRequest<void>(`/carts/${cartId}/clear`, {
+      method: 'DELETE',
+    })
+  },
 }
 
 // Order APIs
@@ -330,9 +388,10 @@ interface OrderItem {
   price: number;
   selectedColor: string;
   selectedSize: string;
+  productImageUrl?: string;
 }
 
-interface OrderDetail {
+export interface OrderDetail {
   id: string;
   customerId: string;
   customerName: string;
@@ -348,7 +407,7 @@ export const orderApi = {
   create: async (orderData: {
     customerId: string
     shippingAddress: string
-    paymentMethod: 'COD' | 'EWALLET'
+    paymentMethod: 'COD' | 'EWALLET' | 'BANK_TRANSFER' | 'E_WALLET' | 'BANK_CARD'
     items: Array<{
       productId: string
       quantity: number
@@ -379,7 +438,21 @@ export const orderApi = {
     return apiRequest<OrderDetail[]>(`/orders`)
   },
   getOrdersForSeller: async (sellerId: string) => {
-    return apiRequest<OrderForSeller[]>(`/order-items/seller/${sellerId}`);
+    return apiRequest<OrderForSeller[]>(`/orders/seller/${sellerId}`);
+  },
+  updateStatus: async (orderId: string, status: string) => {
+    return apiRequest<OrderDetail>(`/orders/${orderId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+  getByCustomerId: async (customerId: string) => {
+    return apiRequest<OrderDetail[]>(`/orders/customer/${customerId}`);
+  },
+  cancelOrder: async (orderId: string) => {
+    return apiRequest<OrderDetail>(`/orders/${orderId}/cancel`, {
+      method: 'PUT'
+    });
   },
 }
 
@@ -388,7 +461,7 @@ export const paymentApi = {
   create: async (paymentData: {
     orderId: string
     amount: number
-    method: 'COD' | 'EWALLET'
+    method: 'COD' | 'EWALLET' | 'BANK_TRANSFER' | 'E_WALLET' | 'BANK_CARD'
   }) => {
     return apiRequest<{
       id: string
@@ -519,6 +592,28 @@ export const promotionApi = {
 
 // Review APIs
 export const reviewApi = {
+  create: async (review: {
+    productId: string
+    userId: string
+    rating: number
+    comment: string
+  }) => {
+    return apiRequest<{
+      id: string
+      productId: string
+      productName: string
+      userId: string
+      userName: string
+      rating: number
+      comment: string
+      createdAt: string
+      approved: boolean
+    }>('/reviews', {
+      method: 'POST',
+      body: JSON.stringify(review),
+    })
+  },
+
   getAll: async () => {
     return apiRequest<Array<{
       id: string
@@ -531,6 +626,34 @@ export const reviewApi = {
       createdAt: string
       approved: boolean
     }>>('/reviews')
+  },
+
+  getByProduct: async (productId: string) => {
+    return apiRequest<Array<{
+      id: string
+      productId: string
+      productName: string
+      userId: string
+      userName: string
+      rating: number
+      comment: string
+      createdAt: string
+      approved: boolean
+    }>>(`/reviews/product/${productId}`)
+  },
+
+  getApprovedByProduct: async (productId: string) => {
+    return apiRequest<Array<{
+      id: string
+      productId: string
+      productName: string
+      userId: string
+      userName: string
+      rating: number
+      comment: string
+      createdAt: string
+      approved: boolean
+    }>>(`/reviews/product/${productId}/approved`)
   },
 
   approve: async (id: string) => {
@@ -582,6 +705,153 @@ export const fileApi = {
 
   getFileUrl: (fileName: string): string => {
     return `${API_BASE_URL}/files/download/${fileName}`;
+  },
+
+  uploadMultiple: async (files: File[]): Promise<string[]> => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+
+    const response = await fetch(`${API_BASE_URL}/files/upload-multiple`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+
+    const bodyText = await response.text();
+
+    if (!response.ok) {
+      try {
+        const errorData = JSON.parse(bodyText);
+        const msg = (errorData && (errorData.message || errorData.error || errorData.status))
+          ? (errorData.message || errorData.error || JSON.stringify(errorData))
+          : response.statusText;
+        throw new Error(msg || `Upload failed: ${response.status}`);
+      } catch {
+        throw new Error(bodyText || response.statusText || `Upload failed: ${response.status}`);
+      }
+    }
+
+    try {
+      const data = JSON.parse(bodyText);
+      if (data.fileDownloadUris && Array.isArray(data.fileDownloadUris)) return data.fileDownloadUris;
+      if (data.files && Array.isArray(data.files)) return data.files.map((f: any) => f.fileDownloadUri || '').filter(Boolean);
+      if (Array.isArray(data)) return data;
+    } catch {
+      // If parsing fails, return empty list
+    }
+    return [];
   }
 };
 
+// Message APIs
+export const messageApi = {
+  send: async (messageData: {
+    senderId: string
+    receiverId: string
+    productId?: string
+    content: string
+  }) => {
+    return apiRequest<{
+      id: string
+      senderId: string
+      senderName: string
+      receiverId: string
+      receiverName: string
+      productId?: string
+      productName?: string
+      content: string
+      createdAt: string
+      read: boolean
+    }>('/messages', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    })
+  },
+
+  getConversation: async (userId: string, otherUserId: string) => {
+    return apiRequest<Array<{
+      id: string
+      senderId: string
+      senderName: string
+      receiverId: string
+      receiverName: string
+      productId?: string
+      productName?: string
+      content: string
+      createdAt: string
+      read: boolean
+    }>>(`/messages/conversation/${otherUserId}?userId=${userId}`)
+  },
+
+  markAsRead: async (messageId: string) => {
+    return apiRequest<void>(`/messages/${messageId}/read`, {
+      method: 'PUT',
+    })
+  },
+
+  getUnreadCount: async (userId: string) => {
+    return apiRequest<{ count: number }>(`/messages/unread-count?userId=${userId}`)
+  },
+
+  getUserMessages: async (userId: string) => {
+    return apiRequest<Array<{
+      id: string
+      senderId: string
+      senderName: string
+      receiverId: string
+      receiverName: string
+      productId?: string
+      productName?: string
+      content: string
+      createdAt: string
+      read: boolean
+    }>>(`/messages/user/${userId}`)
+  },
+};
+
+export const payoutApi = {
+  getBySeller: (sellerId: string) => apiRequest<any[]>(`/payouts/seller/${sellerId}`),
+  getStats: (sellerId: string) => apiRequest<any>(`/payouts/stats/${sellerId}`),
+  request: (sellerId: string, amount: number, method: string) =>
+    apiRequest("/payouts/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ sellerId, amount: amount.toString(), method }),
+    }),
+  getAll: () => apiRequest<any[]>("/payouts/all"),
+  updateStatus: (id: string, status: string) =>
+    apiRequest(`/payouts/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ status }),
+    }),
+};
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: "ORDER" | "PROMOTION" | "SYSTEM" | "PAYMENT" | "REVIEW";
+  isRead: boolean;
+  createdAt: string;
+}
+
+export const notificationApi = {
+  getByUser: (userId: string) => apiRequest<Notification[]>(`/notifications/user/${userId}`),
+  getUnreadCount: (userId: string) => apiRequest<number>(`/notifications/unread-count/${userId}`),
+  markAsRead: (notificationId: string) =>
+    apiRequest(`/notifications/${notificationId}/read`, {
+      method: "PUT",
+    }),
+  markAllAsRead: (userId: string) =>
+    apiRequest(`/notifications/user/${userId}/read-all`, {
+      method: "PUT",
+    }),
+  delete: (notificationId: string) =>
+    apiRequest(`/notifications/${notificationId}`, {
+      method: "DELETE",
+    }),
+};

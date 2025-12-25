@@ -28,33 +28,30 @@ export function FrequentlyBought() {
     const loadProducts = async () => {
       try {
         setLoading(true)
-        const allProducts = await productApi.getAll()
-        console.log("All Products:", allProducts);
+        // Fetch top-selling products based on analytics
+        const topSellingProducts = await productApi.getTopSelling(10)
+        console.log("Top Selling Products:", topSellingProducts);
 
-        if (allProducts.length === 0) {
+        if (topSellingProducts.length === 0) {
           setProducts([])
           return
         }
 
-        // Use the single product from DB (repeat it 5 times for display)
-        const productList: Product[] = allProducts.slice(0, 5).map(p => ({
+        // Use top-selling products
+        const productList: Product[] = topSellingProducts.map((p) => ({
           id: p.id,
           name: p.name,
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
-          price: Number(p.price),
+          price: Number(p.discount) > 0
+            ? Number(p.price) * (1 - Number(p.discount) / 100)
+            : Number(p.price), // Show discounted price if discount exists
+          badge: Number(p.discount) > 0 ? `${p.discount}% OFF` : undefined
         }))
+        console.log("Frequently Bought Products:", productList)
 
-        // Repeat the product to fill 5 slots
-        const repeatedProducts: Product[] = Array.from({ length: 5 }).map((_, index) => {
-          const p = productList[index % productList.length]
-          return {
-            ...p,
-            badge: index < 2 ? "SALE" : index === 2 ? "ON SALE" : undefined
-          }
-        })
-        setProducts(repeatedProducts)
+        setProducts(productList)
       } catch (error) {
-        console.error("Error loading products:", error)
+        console.error("Error loading top-selling products:", error)
       } finally {
         setLoading(false)
       }
@@ -101,7 +98,7 @@ export function FrequentlyBought() {
       ) : products.length === 0 ? (
         <div className="text-center py-8">No products available</div>
       ) : (
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
           {products.map((product) => (
             <div key={product.id} className="group">
               <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">

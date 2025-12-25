@@ -3,13 +3,14 @@ import { Header } from "@/components/lite-header"
 import { LiteFooter } from "@/components/lite-footer"
 import { useState, useEffect } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
-import { Share2, ChevronRight, ShoppingCart } from "lucide-react"
+import { Share2, ChevronRight, ShoppingCart, Star, MessageCircle } from "lucide-react"
 import { LoginModal } from "@/components/login-modal"
+import { MessageModal } from "@/components/MessageModal"
 import { useAuth } from "@/contexts/auth-context"
 import { useCart } from "@/contexts/cart-context"
 import { useBuyNow } from "@/contexts/buy-now-context"
 import { useToast } from "@/hooks/use-toast"
-import { productApi } from "@/lib/api"
+import { productApi, reviewApi } from "@/lib/api"
 
 // Helper function to parse JSON string to array
 function parseJsonArray(jsonString: string | null | undefined): string[] {
@@ -34,6 +35,10 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [actionType, setActionType] = useState<"add-to-cart" | "buy-now" | null>(null)
+  const [reviews, setReviews] = useState<any[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(false)
+  const [variantStock, setVariantStock] = useState<number | null>(null)
+  const [showMessageModal, setShowMessageModal] = useState(false)
   const { isAuthenticated, user, loading: authLoading } = useAuth()
   const { addToCart } = useCart()
   const { setBuyNowProduct } = useBuyNow()
@@ -56,32 +61,30 @@ export default function ProductPage() {
       }
       try {
         setLoading(true)
-        const products = await productApi.getAll()
-        console.log("Products: " + JSON.stringify(products))
-        const productData = products.find((p: any) => p.id === id)
+        const productData = await productApi.getById(id)
+        console.log("Product detail load:", productData)
 
         if (!productData) {
-          setProduct(null);
-          setLoading(false);
-          return;
+          setProduct(null)
+          return
         }
-        
-        // Parse size and color from JSON strings
-        const sizes = parseJsonArray(productData.size)
-        const colors = parseJsonArray(productData.color)
-        
+
+        // Parse size and color from JSON strings if they are strings, otherwise use as is
+        const sizes = typeof productData.size === 'string' ? parseJsonArray(productData.size) : (Array.isArray(productData.size) ? productData.size : [])
+        const colors = typeof productData.color === 'string' ? parseJsonArray(productData.color) : (Array.isArray(productData.color) ? productData.color : [])
+
         // Get first image or placeholder
-        const imageUrl = productData.images && productData.images.length > 0 
-          ? productData.images[0].imageUrl 
+        const imageUrl = productData.images && productData.images.length > 0
+          ? productData.images[0].imageUrl
           : "/placeholder.svg"
-        
+
         setProduct({
           ...productData,
           sizes,
           colors,
           image: imageUrl,
         })
-        
+
         // Set default selections
         if (colors.length > 0) {
           setSelectedColor(colors[0])
@@ -90,6 +93,7 @@ export default function ProductPage() {
           setSelectedSize(sizes[0])
         }
       } catch (error: any) {
+        console.error("Error loading product:", error)
         toast({
           title: "Error",
           description: error.message || "Failed to load product",
@@ -99,8 +103,25 @@ export default function ProductPage() {
         setLoading(false)
       }
     }
-    
+
     loadProduct()
+  }, [id, toast])
+
+  // Load reviews
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (!id) return
+      try {
+        setLoadingReviews(true)
+        const reviewsData = await reviewApi.getApprovedByProduct(id)
+        setReviews(reviewsData)
+      } catch (error) {
+        console.error("Error loading reviews:", error)
+      } finally {
+        setLoadingReviews(false)
+      }
+    }
+    loadReviews()
   }, [id])
 
   // Update selected color and size when product changes
@@ -114,6 +135,23 @@ export default function ProductPage() {
       }
     }
   }, [product, selectedColor, selectedSize])
+
+  // Load variant stock when color or size changes
+  useEffect(() => {
+    const loadVariantStock = async () => {
+      if (!id) return
+      try {
+        const response = await productApi.getVariantStock(id, selectedColor, selectedSize)
+        setVariantStock(response.stock)
+      } catch (error) {
+        console.error('Failed to load variant stock:', error)
+        setVariantStock(null)
+      }
+    }
+    if (selectedColor || selectedSize) {
+      loadVariantStock()
+    }
+  }, [id, selectedColor, selectedSize])
 
   if (loading) {
     return (
@@ -202,19 +240,19 @@ export default function ProductPage() {
       const payload =
         actionType === "add-to-cart"
           ? {
-              id: product.id,
-              name: product.name,
-              price: product.price,
-              image: product.image,
-              color: selectedColor,
-              size: selectedSize,
-            }
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            color: selectedColor,
+            size: selectedSize,
+          }
           : {
-              id: product.id,
-              name: product.name,
-              price: product.price,
-              image: product.image,
-            }
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+          }
       localStorage.setItem(
         "pendingAction",
         JSON.stringify({ type: actionType, product: payload })
@@ -288,9 +326,27 @@ export default function ProductPage() {
           <div>
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 mb-3">
                 <span className="text-3xl font-bold text-red-600">${Number(product.price).toFixed(2)}</span>
               </div>
+
+              {/* Seller Information */}
+              {product.seller && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-cyan-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold">
+                      {product.seller.fullname?.charAt(0).toUpperCase() || 'S'}
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Sold by</p>
+                      <p className="font-bold text-gray-800">{product.seller.fullname || 'Seller'}</p>
+                      {product.seller.email && (
+                        <p className="text-xs text-gray-500">{product.seller.email}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -305,9 +361,8 @@ export default function ProductPage() {
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
-                      className={`w-10 h-10 rounded-full border-2 transition ${
-                        selectedColor === color ? "border-cyan-500" : "border-gray-300 hover:border-gray-400"
-                      } bg-gray-200`}
+                      className={`w-10 h-10 rounded-full border-2 transition ${selectedColor === color ? "border-cyan-500" : "border-gray-300 hover:border-gray-400"
+                        } bg-gray-200`}
                       title={color}
                     />
                   ))}
@@ -324,16 +379,32 @@ export default function ProductPage() {
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`py-3 rounded border-2 font-semibold transition ${
-                        selectedSize === size
-                          ? "border-cyan-500 bg-cyan-50 text-cyan-600"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
+                      className={`py-3 rounded border-2 font-semibold transition ${selectedSize === size
+                        ? "border-cyan-500 bg-cyan-50 text-cyan-600"
+                        : "border-gray-300 hover:border-gray-400"
+                        }`}
                     >
                       {size}
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Stock Display */}
+            {variantStock !== null && (
+              <div className="mb-6">
+                {variantStock > 0 ? (
+                  <p className="text-sm text-green-600 font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                    {variantStock} units available in stock
+                  </p>
+                ) : (
+                  <p className="text-sm text-red-600 font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 bg-red-600 rounded-full"></span>
+                    Out of stock
+                  </p>
+                )}
               </div>
             )}
 
@@ -374,12 +445,79 @@ export default function ProductPage() {
                 <Share2 className="w-5 h-5" />
                 <span className="font-semibold">Share</span>
               </button>
+              {product.seller && product.seller.id && user?.role !== 'seller' && (
+                <button
+                  onClick={() => setShowMessageModal(true)}
+                  className="flex-1 flex items-center justify-center gap-2 border-2 border-cyan-500 text-cyan-600 py-3 rounded-lg hover:bg-cyan-50 transition font-semibold"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Message Seller</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
 
+        {/* Customer Reviews */}
+        {!loading && product && (
+          <div className="max-w-7xl mx-auto px-4 py-12">
+            <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
+            {loadingReviews ? (
+              <p className="text-gray-500">Loading reviews...</p>
+            ) : reviews.length === 0 ? (
+              <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <p className="text-gray-500">No reviews yet. Be the first to review this product!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <div key={review.id} className="bg-white border border-gray-200 rounded-lg p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <p className="font-bold text-gray-900">{review.userName}</p>
+                        {review.sellerName && (
+                          <p className="text-xs text-gray-500 mt-0.5">Shop: {review.sellerName}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex">
+                            {Array.from({ length: 5 }, (_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-4 h-4 ${i < review.rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-300"
+                                  }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {new Date(review.createdAt).toLocaleDateString("en-US")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-gray-700">{review.comment}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Related Products - Can be loaded from backend if needed */}
       </div>
+
+      {/* Message Modal */}
+      {product?.seller && (
+        <MessageModal
+          isOpen={showMessageModal}
+          onClose={() => setShowMessageModal(false)}
+          sellerId={product.seller.id}
+          sellerName={product.seller.fullname || 'Seller'}
+          productId={product.id}
+          productName={product.name}
+        />
+      )}
 
       <LiteFooter />
     </main>

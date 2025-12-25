@@ -29,7 +29,7 @@ public class User {
     @UuidGenerator
     @Column(name = "id", columnDefinition = "BINARY(16)")
     private UUID id;
-    
+
     @Column(name = "fullname", nullable = false)
     private String fullname;
 
@@ -54,6 +54,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private UserRole role;
+
+    @Column(name = "balance", precision = 19, scale = 2)
+    private java.math.BigDecimal balance = java.math.BigDecimal.ZERO;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -150,5 +153,13 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public java.math.BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(java.math.BigDecimal balance) {
+        this.balance = balance;
     }
 }

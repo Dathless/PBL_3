@@ -16,17 +16,46 @@ export interface CartItem {
   cartItemId?: string // Backend cart item ID
 }
 
-interface CartContextType {
+export type Promotion = {
+  id: string
+  name: string
+  description: string
+  discountPercent: number
+  startDate: string
+  endDate: string
+  active: boolean
+}
+
+export interface CartContextType {
   cartItems: CartItem[]
   cartId: string | null
   loading: boolean
-  addToCart: (item: Omit<CartItem, "quantity" | "productId"> & { quantity?: number; productId: string }) => Promise<void>
+
+  addToCart: (
+    item: Omit<CartItem, "quantity" | "productId"> & {
+      quantity?: number
+      productId: string
+    }
+  ) => Promise<void>
+
   removeFromCart: (cartItemId: string) => Promise<void>
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>
   clearCart: () => Promise<void>
+  clearSelectedItems: () => Promise<void>
+
   getTotalPrice: () => number
   getItemCount: () => number
+
   refreshCart: () => Promise<void>
+
+  selectedCartItemIds: Set<string>
+  toggleSelectItem: (cartItemId: string) => void
+  toggleSelectAll: (selectAll: boolean) => void
+
+  appliedPromotion: Promotion | null
+  setAppliedPromotion: (promotion: Promotion | null) => void
+
+  getSelectedItems: () => CartItem[]
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -35,43 +64,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cartId, setCartId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [selectedCartItemIds, setSelectedCartItemIds] = useState<Set<string>>(new Set())
+  const [appliedPromotion, setAppliedPromotion] = useState<Promotion | null>(null)
   const { isAuthenticated, user } = useAuth()
 
   // Load cart from backend when user is authenticated
-  useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      refreshCart()
-    } else {
-      setCartItems([])
-      setCartId(null)
-    }
-  }, [isAuthenticated, user?.id])
-
   const refreshCart = async () => {
     if (!user?.id) return
-    
+
     try {
       setLoading(true)
       // Try to get existing cart
       try {
         const cart = await cartApi.getCartByUserId(user.id)
         setCartId(cart.id)
-        
+
         // Fetch product details for each item
-        const itemsWithDetails = await Promise.all(
-          cart.items.map(async (item: any) => {
+        const itemsWithDetails: (CartItem | null)[] = await Promise.all(
+          cart.items.map(async (item: any): Promise<CartItem | null> => {
             try {
               const product = await productApi.getById(item.productId)
-              const imageUrl = product.images && product.images.length > 0 
-                ? product.images[0].imageUrl 
-                : "/placeholder.svg"
-              
+              const imageUrl =
+                product.images && product.images.length > 0
+                  ? product.images[0].imageUrl
+                  : "/placeholder.svg"
+
               return {
                 id: item.productId,
                 productId: item.productId,
                 cartItemId: item.id,
                 name: item.productName || product.name,
-                price: Number(item.price || product.price),
+                price: Number(product.discount) > 0
+                  ? Number(product.price) * (1 - Number(product.discount) / 100)
+                  : Number(item.price || product.price),
                 quantity: item.quantity,
                 image: imageUrl,
                 color: item.selectedColor || undefined,
@@ -83,7 +108,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             }
           })
         )
-        
+
         setCartItems(itemsWithDetails.filter((item): item is CartItem => item !== null))
       } catch (error: any) {
         // Cart doesn't exist, create one
@@ -101,7 +126,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const addToCart = async (item: Omit<CartItem, "quantity" | "productId"> & { quantity?: number; productId: string }) => {
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      refreshCart()
+    } else {
+      setCartItems([])
+      setCartId(null)
+      setSelectedCartItemIds(new Set())
+      setAppliedPromotion(null)
+    }
+  }, [isAuthenticated, user?.id])
+
+  const addToCart: CartContextType["addToCart"] = async (item) => {
     if (!user?.id || !cartId) {
       // Create cart if it doesn't exist
       if (user?.id) {
@@ -137,9 +173,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const removeFromCart = async (cartItemId: string) => {
+  const removeFromCart: CartContextType["removeFromCart"] = async (cartItemId) => {
     if (!cartId) return
-    
+
     try {
       await cartApi.removeItem(cartId, cartItemId)
       await refreshCart()
@@ -149,16 +185,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const updateQuantity = async (cartItemId: string, quantity: number) => {
+  const updateQuantity: CartContextType["updateQuantity"] = async (cartItemId, quantity) => {
     if (!cartId) return
-    
+
     if (quantity <= 0) {
       await removeFromCart(cartItemId)
       return
     }
 
     try {
-      const cartItem = cartItems.find(item => item.cartItemId === cartItemId)
+      const cartItem = cartItems.find((item) => item.cartItemId === cartItemId)
       if (!cartItem) return
 
       await cartApi.updateItem(cartId, cartItemId, {
@@ -173,28 +209,78 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const clearCart = async () => {
+  const clearCart: CartContextType["clearCart"] = async () => {
     if (!cartId) return
-    
+
     try {
-      // Remove all items
-      for (const item of cartItems) {
-        if (item.cartItemId) {
-          await cartApi.removeItem(cartId, item.cartItemId)
-        }
-      }
+      await cartApi.clearCart(cartId)
       await refreshCart()
     } catch (error) {
       console.error("Error clearing cart:", error)
       throw error
     }
   }
+  const clearSelectedItems: CartContextType["clearSelectedItems"] = async () => {
+    if (!cartId || selectedCartItemIds.size === 0) return
+
+    try {
+      // Remove each selected item one by one
+      // (Backend currently only has removeItem by ID, not a bulk clear selected)
+      const idsToRemove = Array.from(selectedCartItemIds)
+      await Promise.all(idsToRemove.map((id) => cartApi.removeItem(cartId, id)))
+
+      // Clear local selection set
+      setSelectedCartItemIds(new Set())
+
+      // Refresh cart to get updated state from backend
+      await refreshCart()
+    } catch (error) {
+      console.error("Error clearing selected items:", error)
+      throw error
+    }
+  }
+
+  const toggleSelectItem = (cartItemId: string) => {
+    setSelectedCartItemIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(cartItemId)) {
+        next.delete(cartItemId)
+      } else {
+        next.add(cartItemId)
+      }
+      return next
+    })
+  }
+
+  const toggleSelectAll = (selectAll: boolean) => {
+    if (selectAll) {
+      const allIds = cartItems
+        .map((item) => item.cartItemId)
+        .filter((id): id is string => !!id)
+      setSelectedCartItemIds(new Set(allIds))
+    } else {
+      setSelectedCartItemIds(new Set())
+    }
+  }
+
+  const getSelectedItems = () => {
+    return cartItems.filter((item) => item.cartItemId && selectedCartItemIds.has(item.cartItemId))
+  }
 
   const getTotalPrice = () => {
-    return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    const selectedItems = getSelectedItems()
+    const subtotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+    if (appliedPromotion) {
+      return subtotal * (1 - appliedPromotion.discountPercent / 100)
+    }
+    return subtotal
   }
 
   const getItemCount = () => {
+    if (selectedCartItemIds.size > 0) {
+      return getSelectedItems().reduce((sum, item) => sum + item.quantity, 0)
+    }
     return cartItems.reduce((sum, item) => sum + item.quantity, 0)
   }
 
@@ -208,9 +294,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        clearSelectedItems,
         getTotalPrice,
         getItemCount,
         refreshCart,
+        selectedCartItemIds,
+        toggleSelectItem,
+        toggleSelectAll,
+        appliedPromotion,
+        setAppliedPromotion,
+        getSelectedItems,
       }}
     >
       {children}
@@ -225,4 +318,3 @@ export function useCart() {
   }
   return context
 }
-

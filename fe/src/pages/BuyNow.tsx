@@ -9,15 +9,18 @@ import { useAuth } from "@/contexts/auth-context"
 import { useBuyNow } from "@/contexts/buy-now-context"
 import { useShipping } from "@/contexts/shipping-context"
 import { useToast } from "@/hooks/use-toast"
+import { orderApi, paymentApi } from "@/lib/api"
 
 export default function BuyNowPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const { getBuyNowProduct } = useBuyNow()
   const { savedAddress, saveAddress } = useShipping()
   const { toast } = useToast()
   const [step, setStep] = useState<"shipping" | "payment" | "confirm">("shipping")
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "EWALLET" | "BANK_TRANSFER" | "E_WALLET" | "BANK_CARD">("COD")
+  const [isProcessing, setIsProcessing] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
     firstName: "",
@@ -28,6 +31,12 @@ export default function BuyNowPage() {
     city: "",
     postalCode: "",
     country: "",
+  })
+  const [cardData, setCardData] = useState({
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
+    cardHolder: "",
   })
 
   // Load saved address on mount
@@ -44,8 +53,8 @@ export default function BuyNowPage() {
   const productPrice = product?.price || 0
   const productImage = product?.image || "/placeholder.svg"
 
-  const shipping = 10
-  const tax = Math.round(productPrice * 0.1 * 100) / 100
+  const shipping = 5
+  const tax = 0
   const total = Math.round((productPrice + shipping + tax) * 100) / 100
 
   // Check authentication and product
@@ -93,9 +102,28 @@ export default function BuyNowPage() {
     }
   }
 
+  const handleCardInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    if (name === "cardNumber") {
+      const formatted = value.replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim().slice(0, 19)
+      setCardData((prev) => ({ ...prev, [name]: formatted }))
+    } else if (name === "expiryDate") {
+      const formatted = value.replace(/\D/g, "").replace(/(.{2})/g, "$1/").trim().slice(0, 5)
+      if (formatted.endsWith("/")) {
+        setCardData((prev) => ({ ...prev, [name]: formatted.slice(0, -1) }))
+      } else {
+        setCardData((prev) => ({ ...prev, [name]: formatted }))
+      }
+    } else if (name === "cvv") {
+      setCardData((prev) => ({ ...prev, [name]: value.replace(/\D/g, "").slice(0, 3) }))
+    } else {
+      setCardData((prev) => ({ ...prev, [name]: value }))
+    }
+  }
+
   const validateShippingForm = () => {
     const errors: Record<string, string> = {}
-    
+
     if (!formData.firstName.trim()) {
       errors.firstName = "First name is required"
     }
@@ -125,6 +153,25 @@ export default function BuyNowPage() {
   }
 
   const handleContinueToPayment = () => {
+    if (step === "payment" && paymentMethod === "BANK_CARD") {
+      if (!cardData.cardNumber || cardData.cardNumber.replace(/\s/g, "").length < 16) {
+        toast({ title: "Invalid card number", variant: "destructive" })
+        return
+      }
+      if (!cardData.expiryDate || !cardData.expiryDate.includes("/")) {
+        toast({ title: "Invalid expiry date", variant: "destructive" })
+        return
+      }
+      if (!cardData.cvv || cardData.cvv.length < 3) {
+        toast({ title: "Invalid CVV", variant: "destructive" })
+        return
+      }
+      if (!cardData.cardHolder) {
+        toast({ title: "Card holder name is required", variant: "destructive" })
+        return
+      }
+    }
+
     if (validateShippingForm()) {
       // Save address for next time
       saveAddress(formData)
@@ -138,14 +185,54 @@ export default function BuyNowPage() {
     }
   }
 
-  const handlePlaceOrder = () => {
-    // Save address before placing order
-    saveAddress(formData)
-    toast({
-      title: "Order placed successfully!",
-      description: "Thank you for your purchase. Your order is being processed.",
-    })
-    navigate("/order-success")
+  const handlePlaceOrder = async () => {
+    if (!product || !productId) return
+    setIsProcessing(true)
+    try {
+      saveAddress(formData)
+
+      const address = formData.address.trim()
+      const city = formData.city.trim()
+      const postalCode = formData.postalCode.trim()
+      const country = formData.country.trim()
+      const shippingAddress = `${address}, ${city}, ${postalCode}, ${country}`
+
+      // Create order
+      const order = await orderApi.create({
+        customerId: user?.id || "unknown",
+        shippingAddress,
+        paymentMethod,
+        items: [{
+          productId,
+          quantity: 1,
+          price: productPrice,
+          selectedColor: null,
+          selectedSize: null,
+        }],
+      })
+
+      // Create payment
+      await paymentApi.create({
+        orderId: order.id,
+        amount: total,
+        method: paymentMethod,
+      })
+
+      toast({
+        title: "Order placed successfully!",
+        description: "Thank you for your purchase. Your order is being processed.",
+      })
+      navigate("/order-success", { state: { orderId: order.id } })
+    } catch (error: any) {
+      console.error("Order placement failed:", error)
+      toast({
+        title: "Error placing order",
+        description: error.message || "Failed to place order. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   if (!isAuthenticated) {
@@ -168,13 +255,12 @@ export default function BuyNowPage() {
               {(["shipping", "payment", "confirm"] as const).map((s, i) => (
                 <div key={s} className="flex items-center gap-2">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition ${
-                      step === s ||
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition ${step === s ||
                       (step === "payment" && s === "shipping") ||
                       (step === "confirm" && (s === "shipping" || s === "payment"))
-                        ? "bg-cyan-500 text-white"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
+                      ? "bg-cyan-500 text-white"
+                      : "bg-gray-200 text-gray-600"
+                      }`}
                   >
                     {i + 1}
                   </div>
@@ -203,9 +289,8 @@ export default function BuyNowPage() {
                       placeholder="First Name *"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      className={`w-full border rounded-lg px-4 py-2 ${
-                        formErrors.firstName ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full border rounded-lg px-4 py-2 ${formErrors.firstName ? "border-red-500" : "border-gray-300"
+                        }`}
                     />
                     {formErrors.firstName && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.firstName}</p>
@@ -218,9 +303,8 @@ export default function BuyNowPage() {
                       placeholder="Last Name *"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      className={`w-full border rounded-lg px-4 py-2 ${
-                        formErrors.lastName ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full border rounded-lg px-4 py-2 ${formErrors.lastName ? "border-red-500" : "border-gray-300"
+                        }`}
                     />
                     {formErrors.lastName && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.lastName}</p>
@@ -234,9 +318,8 @@ export default function BuyNowPage() {
                     placeholder="Email *"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full border rounded-lg px-4 py-2 ${
-                      formErrors.email ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full border rounded-lg px-4 py-2 ${formErrors.email ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {formErrors.email && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
@@ -249,9 +332,8 @@ export default function BuyNowPage() {
                     placeholder="Phone *"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className={`w-full border rounded-lg px-4 py-2 ${
-                      formErrors.phone ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full border rounded-lg px-4 py-2 ${formErrors.phone ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {formErrors.phone && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>
@@ -264,9 +346,8 @@ export default function BuyNowPage() {
                     placeholder="Street Address *"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className={`w-full border rounded-lg px-4 py-2 ${
-                      formErrors.address ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full border rounded-lg px-4 py-2 ${formErrors.address ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {formErrors.address && (
                     <p className="text-red-500 text-xs mt-1">{formErrors.address}</p>
@@ -281,74 +362,73 @@ export default function BuyNowPage() {
                       placeholder="City/Province *"
                       value={formData.city}
                       onChange={handleInputChange}
-                      className={`w-full border rounded-lg px-4 py-2 ${
-                        formErrors.city ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full border rounded-lg px-4 py-2 ${formErrors.city ? "border-red-500" : "border-gray-300"
+                        }`}
                     />
                     <datalist id="cities-buynow">
-                      <option value="Hà Nội">Hà Nội</option>
-                      <option value="Hồ Chí Minh">Hồ Chí Minh</option>
-                      <option value="Đà Nẵng">Đà Nẵng</option>
-                      <option value="Hải Phòng">Hải Phòng</option>
-                      <option value="Cần Thơ">Cần Thơ</option>
+                      <option value="Ha Noi">Ha Noi</option>
+                      <option value="Ho Chi Minh City">Ho Chi Minh City</option>
+                      <option value="Da Nang">Da Nang</option>
+                      <option value="Hai Phong">Hai Phong</option>
+                      <option value="Can Tho">Can Tho</option>
                       <option value="An Giang">An Giang</option>
-                      <option value="Bà Rịa - Vũng Tàu">Bà Rịa - Vũng Tàu</option>
-                      <option value="Bạc Liêu">Bạc Liêu</option>
-                      <option value="Bắc Giang">Bắc Giang</option>
-                      <option value="Bắc Kạn">Bắc Kạn</option>
-                      <option value="Bắc Ninh">Bắc Ninh</option>
-                      <option value="Bến Tre">Bến Tre</option>
-                      <option value="Bình Định">Bình Định</option>
-                      <option value="Bình Dương">Bình Dương</option>
-                      <option value="Bình Phước">Bình Phước</option>
-                      <option value="Bình Thuận">Bình Thuận</option>
-                      <option value="Cà Mau">Cà Mau</option>
-                      <option value="Cao Bằng">Cao Bằng</option>
-                      <option value="Đắk Lắk">Đắk Lắk</option>
-                      <option value="Đắk Nông">Đắk Nông</option>
-                      <option value="Điện Biên">Điện Biên</option>
-                      <option value="Đồng Nai">Đồng Nai</option>
-                      <option value="Đồng Tháp">Đồng Tháp</option>
+                      <option value="Ba Ria - Vung Tau">Ba Ria - Vung Tau</option>
+                      <option value="Bac Lieu">Bac Lieu</option>
+                      <option value="Bac Giang">Bac Giang</option>
+                      <option value="Bac Kan">Bac Kan</option>
+                      <option value="Bac Ninh">Bac Ninh</option>
+                      <option value="Ben Tre">Ben Tre</option>
+                      <option value="Binh Dinh">Binh Dinh</option>
+                      <option value="Binh Duong">Binh Duong</option>
+                      <option value="Binh Phuoc">Binh Phuoc</option>
+                      <option value="Binh Thuan">Binh Thuan</option>
+                      <option value="Ca Mau">Ca Mau</option>
+                      <option value="Cao Bang">Cao Bang</option>
+                      <option value="Dak Lak">Dak Lak</option>
+                      <option value="Dak Nong">Dak Nong</option>
+                      <option value="Dien Bien">Dien Bien</option>
+                      <option value="Dong Nai">Dong Nai</option>
+                      <option value="Dong Thap">Dong Thap</option>
                       <option value="Gia Lai">Gia Lai</option>
-                      <option value="Hà Giang">Hà Giang</option>
-                      <option value="Hà Nam">Hà Nam</option>
-                      <option value="Hà Tĩnh">Hà Tĩnh</option>
-                      <option value="Hải Dương">Hải Dương</option>
-                      <option value="Hậu Giang">Hậu Giang</option>
-                      <option value="Hòa Bình">Hòa Bình</option>
-                      <option value="Hưng Yên">Hưng Yên</option>
-                      <option value="Khánh Hòa">Khánh Hòa</option>
-                      <option value="Kiên Giang">Kiên Giang</option>
+                      <option value="Ha Giang">Ha Giang</option>
+                      <option value="Ha Nam">Ha Nam</option>
+                      <option value="Ha Tinh">Ha Tinh</option>
+                      <option value="Hai Duong">Hai Duong</option>
+                      <option value="Hau Giang">Hau Giang</option>
+                      <option value="Hoa Binh">Hoa Binh</option>
+                      <option value="Hung Yen">Hung Yen</option>
+                      <option value="Khanh Hoa">Khanh Hoa</option>
+                      <option value="Kien Giang">Kien Giang</option>
                       <option value="Kon Tum">Kon Tum</option>
-                      <option value="Lai Châu">Lai Châu</option>
-                      <option value="Lâm Đồng">Lâm Đồng</option>
-                      <option value="Lạng Sơn">Lạng Sơn</option>
-                      <option value="Lào Cai">Lào Cai</option>
+                      <option value="Lai Chau">Lai Chau</option>
+                      <option value="Lam Dong">Lam Dong</option>
+                      <option value="Lang Son">Lang Son</option>
+                      <option value="Lao Cai">Lao Cai</option>
                       <option value="Long An">Long An</option>
-                      <option value="Nam Định">Nam Định</option>
-                      <option value="Nghệ An">Nghệ An</option>
-                      <option value="Ninh Bình">Ninh Bình</option>
-                      <option value="Ninh Thuận">Ninh Thuận</option>
-                      <option value="Phú Thọ">Phú Thọ</option>
-                      <option value="Phú Yên">Phú Yên</option>
-                      <option value="Quảng Bình">Quảng Bình</option>
-                      <option value="Quảng Nam">Quảng Nam</option>
-                      <option value="Quảng Ngãi">Quảng Ngãi</option>
-                      <option value="Quảng Ninh">Quảng Ninh</option>
-                      <option value="Quảng Trị">Quảng Trị</option>
-                      <option value="Sóc Trăng">Sóc Trăng</option>
-                      <option value="Sơn La">Sơn La</option>
-                      <option value="Tây Ninh">Tây Ninh</option>
-                      <option value="Thái Bình">Thái Bình</option>
-                      <option value="Thái Nguyên">Thái Nguyên</option>
-                      <option value="Thanh Hóa">Thanh Hóa</option>
-                      <option value="Thừa Thiên Huế">Thừa Thiên Huế</option>
-                      <option value="Tiền Giang">Tiền Giang</option>
-                      <option value="Trà Vinh">Trà Vinh</option>
-                      <option value="Tuyên Quang">Tuyên Quang</option>
-                      <option value="Vĩnh Long">Vĩnh Long</option>
-                      <option value="Vĩnh Phúc">Vĩnh Phúc</option>
-                      <option value="Yên Bái">Yên Bái</option>
+                      <option value="Nam Dinh">Nam Dinh</option>
+                      <option value="Nghe An">Nghe An</option>
+                      <option value="Ninh Binh">Ninh Binh</option>
+                      <option value="Ninh Thuan">Ninh Thuan</option>
+                      <option value="Phu Tho">Phu Tho</option>
+                      <option value="Phu Yen">Phu Yen</option>
+                      <option value="Quang Binh">Quang Binh</option>
+                      <option value="Quang Nam">Quang Nam</option>
+                      <option value="Quang Ngai">Quang Ngai</option>
+                      <option value="Quang Ninh">Quang Ninh</option>
+                      <option value="Quang Tri">Quang Tri</option>
+                      <option value="Soc Trang">Soc Trang</option>
+                      <option value="Son La">Son La</option>
+                      <option value="Tay Ninh">Tay Ninh</option>
+                      <option value="Thai Binh">Thai Binh</option>
+                      <option value="Thai Nguyen">Thai Nguyen</option>
+                      <option value="Thanh Hoa">Thanh Hoa</option>
+                      <option value="Thua Thien Hue">Thua Thien Hue</option>
+                      <option value="Tien Giang">Tien Giang</option>
+                      <option value="Tra Vinh">Tra Vinh</option>
+                      <option value="Tuyen Quang">Tuyen Quang</option>
+                      <option value="Vinh Long">Vinh Long</option>
+                      <option value="Vinh Phuc">Vinh Phuc</option>
+                      <option value="Yen Bai">Yen Bai</option>
                     </datalist>
                     {formErrors.city && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.city}</p>
@@ -361,9 +441,8 @@ export default function BuyNowPage() {
                       placeholder="Postal Code *"
                       value={formData.postalCode}
                       onChange={handleInputChange}
-                      className={`w-full border rounded-lg px-4 py-2 ${
-                        formErrors.postalCode ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full border rounded-lg px-4 py-2 ${formErrors.postalCode ? "border-red-500" : "border-gray-300"
+                        }`}
                     />
                     {formErrors.postalCode && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.postalCode}</p>
@@ -384,29 +463,69 @@ export default function BuyNowPage() {
               <div className="space-y-4">
                 <h2 className="text-xl font-bold mb-6">Payment Method</h2>
                 <div className="space-y-3">
-                  <label className="flex items-center gap-3 border border-cyan-500 rounded-lg p-4 cursor-pointer bg-cyan-50">
-                    <input type="radio" name="payment" defaultChecked className="w-4 h-4" />
-                    <span className="font-semibold">Credit Card</span>
+                  <label className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition ${paymentMethod === "COD" ? "border-cyan-500 bg-cyan-50" : "border-gray-300 hover:border-gray-400"}`}>
+                    <input type="radio" name="payment" value="COD" checked={paymentMethod === "COD"} onChange={(e) => setPaymentMethod(e.target.value as any)} className="w-4 h-4" />
+                    <span className="font-semibold">Cash on Delivery (COD)</span>
                   </label>
-                  <label className="flex items-center gap-3 border border-gray-300 rounded-lg p-4 cursor-pointer hover:border-gray-400">
-                    <input type="radio" name="payment" className="w-4 h-4" />
-                    <span className="font-semibold">Debit Card</span>
+                  <label className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition ${paymentMethod === "E_WALLET" ? "border-cyan-500 bg-cyan-50" : "border-gray-300 hover:border-gray-400"}`}>
+                    <input type="radio" name="payment" value="E_WALLET" checked={paymentMethod === "E_WALLET"} onChange={(e) => setPaymentMethod(e.target.value as any)} className="w-4 h-4" />
+                    <span className="font-semibold">E-wallet (MoMo/ZaloPay)</span>
                   </label>
-                  <label className="flex items-center gap-3 border border-gray-300 rounded-lg p-4 cursor-pointer hover:border-gray-400">
-                    <input type="radio" name="payment" className="w-4 h-4" />
-                    <span className="font-semibold">PayPal</span>
+                  <label className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition ${paymentMethod === "BANK_TRANSFER" ? "border-cyan-500 bg-cyan-50" : "border-gray-300 hover:border-gray-400"}`}>
+                    <input type="radio" name="payment" value="BANK_TRANSFER" checked={paymentMethod === "BANK_TRANSFER"} onChange={(e) => setPaymentMethod(e.target.value as any)} className="w-4 h-4" />
+                    <span className="font-semibold">Bank Transfer</span>
                   </label>
+                  <label className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition ${paymentMethod === "BANK_CARD" ? "border-cyan-500 bg-cyan-50" : "border-gray-300 hover:border-gray-400"}`}>
+                    <input type="radio" name="payment" value="BANK_CARD" checked={paymentMethod === "BANK_CARD"} onChange={(e) => setPaymentMethod(e.target.value as any)} className="w-4 h-4" />
+                    <span className="font-semibold">Credit/Debit Card</span>
+                  </label>
+
+                  {paymentMethod === "BANK_CARD" && (
+                    <div className="mt-4 p-4 border border-cyan-200 bg-cyan-50/30 rounded-lg space-y-4 animate-in fade-in slide-in-from-top-2">
+                      <div className="grid grid-cols-1 gap-4">
+                        <input
+                          type="text"
+                          name="cardNumber"
+                          placeholder="Card Number (16 digits)"
+                          value={cardData.cardNumber}
+                          onChange={handleCardInputChange}
+                          className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                        />
+                        <input
+                          type="text"
+                          name="cardHolder"
+                          placeholder="Card Holder Name"
+                          value={cardData.cardHolder}
+                          onChange={handleCardInputChange}
+                          className="w-full border border-gray-300 rounded-lg px-4 py-2 uppercase"
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            name="expiryDate"
+                            placeholder="MM/YY"
+                            value={cardData.expiryDate}
+                            onChange={handleCardInputChange}
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                          />
+                          <input
+                            type="password"
+                            name="cvv"
+                            placeholder="CVV"
+                            value={cardData.cvv}
+                            onChange={handleCardInputChange}
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-gray-400 italic">
+                        * Your card information is encrypted and processed securely.
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <div className="pt-4 space-y-4">
-                  <input
-                    type="text"
-                    placeholder="Card Number"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="text" placeholder="MM/YY" className="border border-gray-300 rounded-lg px-4 py-2" />
-                    <input type="text" placeholder="CVV" className="border border-gray-300 rounded-lg px-4 py-2" />
-                  </div>
+                <div className="pt-4 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 italic">
+                  * Please review your order information before proceeding.
                 </div>
                 <div className="flex gap-4 pt-4">
                   <button
@@ -452,9 +571,10 @@ export default function BuyNowPage() {
                   </button>
                   <button
                     onClick={handlePlaceOrder}
-                    className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition"
+                    disabled={isProcessing}
+                    className="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Place Order
+                    {isProcessing ? "Processing..." : "Place Order"}
                   </button>
                 </div>
               </div>
@@ -484,10 +604,6 @@ export default function BuyNowPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span>${shipping.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax (10%)</span>
-                  <span>${tax.toFixed(2)}</span>
                 </div>
               </div>
               <div className="flex justify-between text-lg">

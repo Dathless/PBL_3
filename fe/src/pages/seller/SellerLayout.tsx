@@ -8,7 +8,8 @@ import {
   BarChart3,
   Settings,
   HelpCircle,
-  ShoppingCart
+  ShoppingCart,
+  MessageSquare
 } from "lucide-react"
 
 interface SellerLayoutProps {
@@ -25,6 +26,7 @@ export default function SellerLayout({ children, activeMenu, setActiveMenu }: Se
     { id: "dashboard", icon: Home, label: "Dashboard", path: "/seller/dashboard" },
     { id: "orders", icon: Package, label: "Orders", path: "/seller/orders" },
     { id: "products", icon: ShoppingCart, label: "Products", path: "/seller/products" },
+    { id: "messages", icon: MessageSquare, label: "Messages", path: "/seller/messages" },
     { id: "payouts", icon: DollarSign, label: "Payouts", path: "/seller/payouts" },
     { id: "analytics", icon: BarChart3, label: "Analytics", path: "/seller/analytics" },
     { id: "settings", icon: Settings, label: "Settings", path: "/seller/settings" },
@@ -52,11 +54,10 @@ export default function SellerLayout({ children, activeMenu, setActiveMenu }: Se
               <button
                 key={item.id}
                 onClick={() => handleMenuClick(item.id, item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                  activeMenu === item.id
-                    ? "bg-cyan-50 text-cyan-600 font-semibold"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeMenu === item.id
+                  ? "bg-cyan-50 text-cyan-600 font-semibold"
+                  : "text-gray-700 hover:bg-gray-100"
+                  }`}
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>

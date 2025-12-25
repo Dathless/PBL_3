@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { FiUpload, FiX, FiImage } from 'react-icons/fi';
+import { FiUpload, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import { api } from '@/lib/api';
 
 interface ImageUploaderProps {
   maxFiles?: number;
@@ -9,13 +8,12 @@ interface ImageUploaderProps {
   initialImages?: string[];
 }
 
-export default function ImageUploader({ 
-  maxFiles = 5, 
+export default function ImageUploader({
+  maxFiles = 5,
   onFilesChange,
   initialImages = []
 }: ImageUploaderProps) {
   const [previewUrls, setPreviewUrls] = useState<(string | File)[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
 
   // Initialize with initial images
   useEffect(() => {
@@ -26,33 +24,30 @@ export default function ImageUploader({
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    
+
     const files = Array.from(e.target.files);
-    
+
     // Check max files
     if (files.length + previewUrls.length > maxFiles) {
-      toast.error(`Bạn chỉ có thể tải lên tối đa ${maxFiles} ảnh`);
+      toast.error(`You can only upload up to ${maxFiles} images`);
       return;
     }
 
     // Validate files
     const validFiles = files.filter(file => {
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`File ${file.name} vượt quá kích thước cho phép (10MB)`);
+        toast.error(`File ${file.name} exceeds maximum size (10MB)`);
         return false;
       }
       if (!file.type.startsWith('image/')) {
-        toast.error(`File ${file.name} không phải là ảnh`);
+        toast.error(`File ${file.name} is not an image`);
         return false;
       }
       return true;
     });
 
     // Create preview URLs
-    const newPreviewUrls = validFiles.map(file => {
-      const url = URL.createObjectURL(file);
-      return file; // Store File object directly
-    });
+    const newPreviewUrls = validFiles.map(file => file); // Store File object directly
 
     setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
     onFilesChange([...previewUrls, ...newPreviewUrls]);
@@ -65,12 +60,12 @@ export default function ImageUploader({
     setPreviewUrls(prev => {
       const newUrls = [...prev];
       const removed = newUrls.splice(index, 1)[0];
-      
+
       // Revoke object URL if it's a blob URL
       if (typeof removed === 'string' && removed.startsWith('blob:')) {
         URL.revokeObjectURL(removed);
       }
-      
+
       onFilesChange(newUrls);
       return newUrls;
     });
@@ -104,21 +99,20 @@ export default function ImageUploader({
         {previewUrls.length < maxFiles && (
           <label className="flex flex-col items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
             <FiUpload className="w-6 h-6 text-gray-400 mb-1" />
-            <span className="text-xs text-gray-500 text-center">Thêm ảnh</span>
+            <span className="text-xs text-gray-500 text-center">Add image</span>
             <input
               type="file"
               className="hidden"
               accept="image/*"
               multiple
               onChange={handleFileChange}
-              disabled={isUploading}
             />
           </label>
         )}
       </div>
-      
+
       <p className="text-xs text-gray-500">
-        Tối đa {maxFiles} ảnh. Định dạng: JPG, PNG. Tối đa 10MB/ảnh.
+        Maximum {maxFiles} images. Format: JPG, PNG. Maximum 10MB/image.
       </p>
     </div>
   );

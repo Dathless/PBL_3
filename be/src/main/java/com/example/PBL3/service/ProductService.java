@@ -36,4 +36,12 @@ public interface ProductService {
     String getRejectionReason(UUID id);
 
     List<ProductDTO> getApprovedProducts();
+
+    int getVariantStock(UUID productId, String color, String size);
+
+    void fixProductPrices();
+
+    List<ProductDTO> getDiscountedProducts();
+
+    List<ProductDTO> getTopSellingProducts(int limit);
 }

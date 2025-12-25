@@ -32,7 +32,7 @@ export default function Promotions() {
       const data = await promotionApi.getAll()
       setPromotions(data)
     } catch (err: any) {
-      setError(err.message || "Không thể tải danh sách khuyến mãi")
+      setError(err.message || "Failed to load promotions")
     } finally {
       setLoading(false)
     }
@@ -104,7 +104,7 @@ export default function Promotions() {
       await promotionApi.update(promotion.id, { active: !promotion.active })
       await fetchPromotions()
     } catch (err: any) {
-      setError(err.message || "Không thể cập nhật trạng thái")
+      setError(err.message || "Failed to update status")
     }
   }
 
@@ -251,14 +251,13 @@ export default function Promotions() {
                   </td>
                   <td className="px-4 py-3">{promotion.discountPercent}%</td>
                   <td className="px-4 py-3">
-                    {new Date(promotion.startDate).toLocaleDateString('vi-VN')} - {new Date(promotion.endDate).toLocaleDateString('vi-VN')}
+                    {new Date(promotion.startDate).toLocaleDateString('en-US')} - {new Date(promotion.endDate).toLocaleDateString('en-US')}
                   </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => toggleActive(promotion)}
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        promotion.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}
+                      className={`px-2 py-1 rounded-full text-xs ${promotion.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}
                     >
                       {promotion.active ? 'Active' : 'Paused'}
                     </button>

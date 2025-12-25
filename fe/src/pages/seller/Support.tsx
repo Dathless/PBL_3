@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/auth-context"
 import {
   HelpCircle,
@@ -11,6 +12,7 @@ import SellerLayout from "./SellerLayout"
 
 export default function SupportPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [activeMenu, setActiveMenu] = useState("support")
   const [activeTab, setActiveTab] = useState("faq")
 
@@ -59,21 +61,19 @@ export default function SupportPage() {
         <div className="flex gap-4 mb-6 border-b border-gray-200">
           <button
             onClick={() => setActiveTab("faq")}
-            className={`px-4 py-2 font-semibold border-b-2 transition ${
-              activeTab === "faq"
-                ? "border-cyan-600 text-cyan-600"
-                : "border-transparent text-gray-600 hover:text-gray-800"
-            }`}
+            className={`px-4 py-2 font-semibold border-b-2 transition ${activeTab === "faq"
+              ? "border-cyan-600 text-cyan-600"
+              : "border-transparent text-gray-600 hover:text-gray-800"
+              }`}
           >
             FAQ
           </button>
           <button
             onClick={() => setActiveTab("contact")}
-            className={`px-4 py-2 font-semibold border-b-2 transition ${
-              activeTab === "contact"
-                ? "border-cyan-600 text-cyan-600"
-                : "border-transparent text-gray-600 hover:text-gray-800"
-            }`}
+            className={`px-4 py-2 font-semibold border-b-2 transition ${activeTab === "contact"
+              ? "border-cyan-600 text-cyan-600"
+              : "border-transparent text-gray-600 hover:text-gray-800"
+              }`}
           >
             Contact Us
           </button>
@@ -161,7 +161,10 @@ export default function SupportPage() {
                   <div>
                     <h3 className="font-bold mb-1">Live Chat</h3>
                     <p className="text-gray-600">Available 24/7</p>
-                    <button className="mt-2 text-cyan-600 hover:text-cyan-700 font-semibold">
+                    <button
+                      onClick={() => navigate("/seller/messages")}
+                      className="mt-2 text-cyan-600 hover:text-cyan-700 font-semibold"
+                    >
                       Start Chat →
                     </button>
                   </div>

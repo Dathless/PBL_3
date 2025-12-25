@@ -2,5 +2,8 @@ package com.example.PBL3.model.status;
 
 public enum PaymentMethod {
 	COD,
-	EWALLET
+	EWALLET,
+	BANK_TRANSFER,
+	E_WALLET,
+	BANK_CARD
 }

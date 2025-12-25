@@ -14,10 +14,11 @@ import com.example.PBL3.model.User;
 import com.example.PBL3.repository.UserRepository;
 import com.example.PBL3.service.AuthService;
 import com.example.PBL3.util.JwtUtil;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-
 
 //import lombok.RequiredArgsConstructor;
 
@@ -37,8 +38,6 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
-    @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
-
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginDTO loginDTO, HttpServletResponse response) {
         return ResponseEntity.ok(authService.login(loginDTO, response));
@@ -51,28 +50,26 @@ public class AuthController {
     }
 
     @GetMapping("/currentUser")
-    public ResponseEntity<?>  getCurrentUser(
-            @CookieValue(name = "token", required = false) String token
-    ) {
-        if (token == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "token is null"));
+    public ResponseEntity<?> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "User not authenticated"));
         }
 
         try {
-            String username = jwtUtil.extractUsername(token);
-            String role = jwtUtil.extractRole(token);
+            String username = authentication.getName();
 
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new UserNotFoundException("User not found"));
 
             return ResponseEntity.ok(Map.of(
-                    "Id", user.getId(),
+                    "id", user.getId(),
                     "fullname", user.getFullname(),
                     "username", user.getUsername(),
-                    "role", role
-            ));
-        }
-        catch (Exception e) {
+                    "role", user.getRole().name()));
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", e.getMessage()));
         }
     }

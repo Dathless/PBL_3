@@ -47,32 +47,29 @@ export function DealsOfDay() {
     const loadProducts = async () => {
       try {
         setLoading(true)
-        const allProducts = await productApi.getAll()
+        // Fetch discounted products for TODAY'S DEALS
+        const discountedProducts = await productApi.getDiscounted()
 
-        if (allProducts.length === 0) {
+        if (discountedProducts.length === 0) {
           setProducts([])
           return
         }
 
-        // Use the single product from DB (repeat it 4 times for display)
-        const productList: Product[] = allProducts.slice(0, 4).map(p => ({
+        // Use discounted products
+        const productList: Product[] = discountedProducts.map(p => ({
           id: p.id,
           name: p.name,
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
-          price: Number(p.price),
-          originalPrice: Number(p.price) * 1.3, // Fake original price
+          price: Number(p.price) * (1 - Number(p.discount) / 100), // Calculate discounted price
+          originalPrice: Number(p.price), // Original price before discount
         }))
-        console.log("Product load: ", productList)
+        console.log("Discounted products for TODAY'S DEALS: ", productList)
 
-        // Repeat the product to fill 4 slots
-        const repeatedProducts: Product[] = Array.from({ length: 4 }).map(
-          (_, index) => productList[index % productList.length]
-        )
-        setProducts(repeatedProducts)
+        setProducts(productList.slice(0, 8))
 
         // Initialize timers
         setProductTimers(
-          repeatedProducts.reduce((acc, p) => {
+          productList.slice(0, 8).reduce((acc, p) => {
             acc[p.id] = {
               days: Math.floor(Math.random() * 3),
               hours: Math.floor(Math.random() * 24),
@@ -83,7 +80,7 @@ export function DealsOfDay() {
           }, {} as ProductTimer)
         )
       } catch (error) {
-        console.error("Error loading products:", error)
+        console.error("Error loading discounted products:", error)
       } finally {
         setLoading(false)
       }
@@ -169,7 +166,7 @@ export function DealsOfDay() {
       ) : products.length === 0 ? (
         <div className="text-center py-8">No products available</div>
       ) : (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {products.map((product) => (
             <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
               <Link to={`/product/${product.id}`} className="block">
@@ -195,8 +192,8 @@ export function DealsOfDay() {
                   <h3 className="font-bold text-sm text-gray-900 line-clamp-2 hover:text-cyan-600 transition">{product.name}</h3>
                 </Link>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-red-600 font-bold text-sm">${product.price}</span>
-                  <span className="text-gray-400 line-through text-xs">${product.originalPrice}</span>
+                  <span className="text-red-600 font-bold text-sm">${Number(product.price).toFixed(2)}</span>
+                  <span className="text-gray-400 line-through text-xs">${Number(product.originalPrice).toFixed(2)}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   <button

@@ -1,6 +1,7 @@
 package com.example.PBL3.dto;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,10 +33,21 @@ public class ProductDTO {
     private Long categoryId;
     private String categoryName;
     private UUID sellerId;
+    private UserDTO seller;
     private List<ProductImageDTO> images;
+    private List<ProductVariantDTO> variants;
+    private Timestamp createdAt;
 
     public UUID getId() {
         return id;
+    }
+
+    public Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
     }
 
     public void setId(UUID id) {
@@ -162,11 +174,27 @@ public class ProductDTO {
         this.sellerId = sellerId;
     }
 
+    public UserDTO getSeller() {
+        return seller;
+    }
+
+    public void setSeller(UserDTO seller) {
+        this.seller = seller;
+    }
+
     public List<ProductImageDTO> getImages() {
         return images;
     }
 
     public void setImages(List<ProductImageDTO> images) {
         this.images = images;
+    }
+
+    public List<ProductVariantDTO> getVariants() {
+        return variants;
+    }
+
+    public void setVariants(List<ProductVariantDTO> variants) {
+        this.variants = variants;
     }
 }

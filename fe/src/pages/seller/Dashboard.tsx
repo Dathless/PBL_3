@@ -10,62 +10,60 @@ import {
   Package
 } from "lucide-react"
 import SellerLayout from "./SellerLayout"
-import { productApi } from "@/lib/api"
+import { getSellerProducts, getSellerOrders, getAnalyticsSummary, getRevenueSeries } from "@/lib/sellerApi"
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 export default function SellerDashboard() {
   const { user } = useAuth()
   const [activeMenu, setActiveMenu] = useState("dashboard")
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     revenue: 0,
     orders: 0,
     products: 0,
     rating: 0
   })
-  const [recentOrders, setRecentOrders] = useState<Array<{
-    id: number
-    customer: string
-    product: string
-    amount: number
-    status: string
-  }>>([])
-  const [lowStockProducts, setLowStockProducts] = useState<Array<{
-    id: string
-    name: string
-    stock: number
-  }>>([])
+  const [summary, setSummary] = useState<any>(null)
+  const [revenueSeries, setRevenueSeries] = useState<any[]>([])
+  const [recentOrders, setRecentOrders] = useState<any[]>([])
+  const [lowStockProducts, setLowStockProducts] = useState<any[]>([])
 
-  // Load seller products and calculate stats
   useEffect(() => {
     const loadData = async () => {
       if (!user?.id) return
+      setLoading(true)
       try {
-        const allProducts = await productApi.getAll()
-        // Filter products by seller_id
-        const sellerProducts = allProducts.filter((p: any) => {
-          return p.sellerId === user.id || (p.seller && p.seller.id === user.id)
-        })
-        
-        // Calculate stats
-        const productCount = sellerProducts.length
-        const lowStock = sellerProducts.filter((p: any) => p.stock < 10).map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          stock: p.stock,
-        }))
-        
+        const [products, orders, analytics, series] = await Promise.all([
+          getSellerProducts(user.id),
+          getSellerOrders(user.id),
+          getAnalyticsSummary(user.id, "30d"),
+          getRevenueSeries(user.id, "30d")
+        ])
+
         setStats({
-          revenue: 0, // Will be calculated from orders later
-          orders: 0, // Will be calculated from orders later
-          products: productCount,
-          rating: 0,
+          revenue: analytics.revenue.current,
+          orders: analytics.orders.current,
+          products: products.length,
+          rating: 4.8 // Mock rating for now or fetch if available
         })
-        setLowStockProducts(lowStock)
-        setRecentOrders([]) // Empty if no products
+
+        setSummary(analytics)
+        setRevenueSeries(series)
+        setSummary(analytics)
+        setRevenueSeries(series)
+        setRecentOrders((orders || []).slice(0, 5).map(o => ({
+          id: o.orderId || Math.random().toString(),
+          customer: o.customerName || "Walking Customer",
+          product: o.productName || "Product",
+          amount: (o.price && o.quantity) ? (o.price * o.quantity) : 0,
+          status: o.status
+        })))
+
+        setLowStockProducts(products.filter(p => p.stock < 10))
       } catch (error) {
         console.error("Error loading dashboard data:", error)
-        setStats({ revenue: 0, orders: 0, products: 0, rating: 0 })
-        setLowStockProducts([])
-        setRecentOrders([])
+      } finally {
+        setLoading(false)
       }
     }
     loadData()
@@ -76,6 +74,14 @@ export default function SellerDashboard() {
       <div className="min-h-screen flex items-center justify-center">
         <p>Access denied. Please login as seller.</p>
       </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <SellerLayout activeMenu={activeMenu} setActiveMenu={setActiveMenu}>
+        <div className="flex h-screen items-center justify-center text-slate-500">Loading dashboard...</div>
+      </SellerLayout>
     )
   }
 
@@ -101,10 +107,12 @@ export default function SellerDashboard() {
               <DollarSign className="w-5 h-5 text-green-500" />
             </div>
             <p className="text-2xl font-bold">${stats.revenue.toLocaleString()}</p>
-            <p className="text-sm text-green-600 flex items-center gap-1 mt-2">
-              <TrendingUp className="w-4 h-4" />
-              +12.5% from last month
-            </p>
+            {summary && (
+              <p className={`text-sm flex items-center gap-1 mt-2 ${summary.revenue.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <TrendingUp className={`w-4 h-4 ${summary.revenue.change < 0 ? 'rotate-180' : ''}`} />
+                {summary.revenue.change > 0 ? '+' : ''}{summary.revenue.change}% from last 30d
+              </p>
+            )}
           </div>
 
           <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -113,10 +121,12 @@ export default function SellerDashboard() {
               <Package className="w-5 h-5 text-blue-500" />
             </div>
             <p className="text-2xl font-bold">{stats.orders}</p>
-            <p className="text-sm text-blue-600 flex items-center gap-1 mt-2">
-              <TrendingUp className="w-4 h-4" />
-              +8 new orders
-            </p>
+            {summary && (
+              <p className={`text-sm flex items-center gap-1 mt-2 ${summary.orders.change >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                <TrendingUp className={`w-4 h-4 ${summary.orders.change < 0 ? 'rotate-180' : ''}`} />
+                {summary.orders.change > 0 ? '+' : ''}{summary.orders.change}% from last 30d
+              </p>
+            )}
           </div>
 
           <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -134,7 +144,7 @@ export default function SellerDashboard() {
               <Star className="w-5 h-5 text-yellow-500" />
             </div>
             <p className="text-2xl font-bold">{stats.rating}</p>
-            <p className="text-sm text-gray-600 mt-2">Based on 234 reviews</p>
+            <p className="text-sm text-gray-600 mt-2">Seller Rating</p>
           </div>
         </div>
 
@@ -155,54 +165,69 @@ export default function SellerDashboard() {
           </div>
         )}
 
-        {/* Recent Orders */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <h3 className="text-xl font-bold mb-4">Recent Orders</h3>
-          <div className="overflow-x-auto">
-            {recentOrders.length > 0 ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Order ID</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Customer</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Product</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Amount</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-100">
-                      <td className="py-3 px-4 text-sm">#{order.id}</td>
-                      <td className="py-3 px-4 text-sm">{order.customer}</td>
-                      <td className="py-3 px-4 text-sm">{order.product}</td>
-                      <td className="py-3 px-4 text-sm font-semibold">${order.amount}</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          order.status === "completed" 
-                            ? "bg-green-100 text-green-800" 
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Recent Orders */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-xl font-bold mb-4">Recent Orders</h3>
+            <div className="overflow-x-auto">
+              {recentOrders.length > 0 ? (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Order ID</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Customer</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Product</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Amount</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>No orders yet</p>
-              </div>
-            )}
+                  </thead>
+                  <tbody>
+                    {recentOrders.map((order) => (
+                      <tr key={order.id} className="border-b border-gray-100">
+                        <td className="py-3 px-4 text-sm">#{order.id.toString().slice(0, 8)}</td>
+                        <td className="py-3 px-4 text-sm">{order.customer}</td>
+                        <td className="py-3 px-4 text-sm">{order.product}</td>
+                        <td className="py-3 px-4 text-sm font-semibold">${order.amount}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${order.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                            }`}>
+                            {order.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No orders yet</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Chart Placeholder */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-xl font-bold mb-4">Revenue Overview</h3>
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-            <p className="text-gray-500">Chart will be displayed here</p>
+          {/* Chart */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h3 className="text-xl font-bold mb-4">Revenue Trend</h3>
+            <div className="h-64">
+              {revenueSeries.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={revenueSeries}>
+                    <XAxis dataKey="label" hide />
+                    <YAxis hide />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="value" stroke="#0891b2" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg text-gray-500 text-sm">
+                  No trend data available
+                </div>
+              )}
+            </div>
+            <p className="text-center text-xs text-gray-500 mt-4">Last 30 days revenue</p>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/auth-context"
-import { FiLogOut, FiUser } from "react-icons/fi"
+import { FiUser } from "react-icons/fi"
+import { LogOut } from "lucide-react"
 
 const navItems = [
   { to: "/admin/dashboard", label: "Dashboard", icon: "📊" },
@@ -10,6 +11,7 @@ const navItems = [
   { to: "/admin/categories", label: "Categories", icon: "🏷️" },
   { to: "/admin/promotions", label: "Promotions", icon: "🎁" },
   { to: "/admin/reviews", label: "Reviews", icon: "⭐" },
+  { to: "/admin/payouts", label: "Payouts", icon: "💰" },
   { to: "/admin/settings", label: "Settings", icon: "⚙️" },
 ]
 
@@ -29,7 +31,7 @@ export default function AdminLayout() {
         <div className="p-4 border-b">
           <h1 className="text-xl font-bold text-gray-800">Admin Dashboard</h1>
         </div>
-        
+
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => (
@@ -37,10 +39,9 @@ export default function AdminLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                  isActive 
-                    ? "bg-blue-50 text-blue-600" 
-                    : "text-gray-600 hover:bg-gray-100"
+                `flex items-center px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-600 hover:bg-gray-100"
                 }`
               }
             >
@@ -58,7 +59,7 @@ export default function AdminLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.name || user?.username || 'Admin'}
+                {user?.fullname || user?.username || 'Admin'}
               </p>
               <p className="text-xs text-gray-500 truncate">
                 {user?.role || 'Administrator'}
@@ -66,10 +67,11 @@ export default function AdminLayout() {
             </div>
             <button
               onClick={handleLogout}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
               title="Logout"
             >
-              <FiLogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
             </button>
           </div>
         </div>
@@ -81,7 +83,6 @@ export default function AdminLayout() {
           <Outlet />
         </div>
       </main>
-    </div>
+    </div >
   )
 }
- 

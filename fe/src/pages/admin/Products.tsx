@@ -72,13 +72,18 @@ export default function Products() {
     try {
       await productApi.approveProduct(productId, user.id)
       // Optimistic update: Update local state immediately
-      setProducts(prev => prev.map(p =>
-        p.id === productId ? { ...p, status: "APPROVED" } : p
-      ))
+      if (activeTab === "pending") {
+        setProducts(prev => prev.filter(p => p.id !== productId))
+      } else {
+        setProducts(prev => prev.map(p =>
+          p.id === productId ? { ...p, status: "APPROVED" } : p
+        ))
+      }
       toast.success("Product approved")
     } catch (err: any) {
       setError(err.message || "Product approval failed")
-      toast.error("Product approval failed")
+      setError(err.message || "Product approval failed")
+      // toast.error("Product approval failed")
       // Revert or re-fetch on error if needed, but for now just show error
       fetchProducts()
     }
@@ -101,16 +106,20 @@ export default function Products() {
     try {
       await productApi.rejectProduct(selectedProduct.id, user.id, rejectionReason)
       // Optimistic update: Update local state immediately
-      setProducts(prev => prev.map(p =>
-        p.id === selectedProduct.id ? { ...p, status: "REJECTED" } : p
-      ))
+      if (activeTab === "pending") {
+        setProducts(prev => prev.filter(p => p.id !== selectedProduct.id))
+      } else {
+        setProducts(prev => prev.map(p =>
+          p.id === selectedProduct.id ? { ...p, status: "REJECTED" } : p
+        ))
+      }
       setShowRejectModal(false)
       setRejectionReason("")
       setSelectedProduct(null)
       toast.success("Product rejected")
     } catch (err: any) {
       setError(err.message || "Product rejection failed")
-      toast.error("Product rejection failed")
+      toast.error(err.message || "Product rejection failed")
       fetchProducts()
     }
   }
@@ -205,7 +214,7 @@ export default function Products() {
                     <td className="px-4 py-3 font-medium">{product.name}</td>
                     <td className="px-4 py-3">{product.categoryName}</td>
                     <td className="px-4 py-3">
-                      {product.price.toLocaleString()} VND
+                      ${product.price.toLocaleString()}
                     </td>
                     <td className="px-4 py-3">{product.stock}</td>
                     <td className="px-4 py-3">

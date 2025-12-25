@@ -4,12 +4,12 @@ import { Link } from "react-router-dom"
 
 export function ShopByBrands() {
   const brands = [
-    { name: "ZARA", slug: "zara" },
-    { name: "D&G", slug: "dg" },
-    { name: "H&M", slug: "hm" },
-    { name: "CHANEL", slug: "chanel" },
-    { name: "PRADA", slug: "prada" },
-    { name: "BIBA", slug: "biba" },
+    { name: "ZARA", slug: "zara", image: "/logos/zara_logo_1766693704886.png" },
+    { name: "D&G", slug: "dg", image: "/logos/dg_logo_1766693722076.png" },
+    { name: "H&M", slug: "hm", image: "/logos/hm_logo_1766693736751.png" },
+    { name: "CHANEL", slug: "chanel", image: "/logos/chanel_logo_1766693752504.png" },
+    { name: "PRADA", slug: "prada", image: "/logos/prada_logo_1766693765801.png" },
+    { name: "BIBA", slug: "biba", image: "/logos/biba_logo_1766693781762.png" },
   ]
 
   return (
@@ -28,9 +28,13 @@ export function ShopByBrands() {
           <Link
             key={brand.slug}
             to={`/brand/${brand.slug}`}
-            className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 hover:shadow-lg transition cursor-pointer group"
+            className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center hover:bg-white hover:shadow-lg transition cursor-pointer group border border-gray-100"
           >
-            <span className="font-bold text-center text-gray-800 group-hover:scale-110 transition">{brand.name}</span>
+            <img
+              src={brand.image}
+              alt={brand.name}
+              className="w-[70%] h-auto object-contain opacity-70 group-hover:opacity-100 transition duration-300 grayscale group-hover:grayscale-0"
+            />
           </Link>
         ))}
       </div>

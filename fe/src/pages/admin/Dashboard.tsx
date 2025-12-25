@@ -38,7 +38,7 @@ export default function Dashboard() {
         setProducts(p || [])
         setOrders(o || [])
       } catch (err: any) {
-        setError(err.message || "Không thể tải dữ liệu")
+        setError(err.message || "Could not load data")
       } finally {
         setLoading(false)
       }
@@ -52,23 +52,21 @@ export default function Dashboard() {
   }, [orders])
 
   const chartData = useMemo(() => {
-    // Fake chart data based on orders date if available, fallback to static weekly data
     if (orders.length > 0) {
       const buckets: Record<string, number> = {}
       orders.forEach((o: any) => {
+        // Assume orderDate is ISO string e.g. "2023-10-27T..."
         const key = (o.orderDate || "").slice(0, 10) || "N/A"
-        buckets[key] = (buckets[key] || 0) + Number(o.totalAmount || 0)
+        if (key !== "N/A") {
+          buckets[key] = (buckets[key] || 0) + Number(o.totalAmount || 0)
+        }
       })
-      return Object.entries(buckets).map(([date, total]) => ({ date, total }))
+
+      return Object.entries(buckets)
+        .map(([date, total]) => ({ date, total }))
+        .sort((a, b) => a.date.localeCompare(b.date))
     }
-    return [
-      { date: "T2", total: 12_000_000 },
-      { date: "T3", total: 9_000_000 },
-      { date: "T4", total: 13_500_000 },
-      { date: "T5", total: 10_200_000 },
-      { date: "T6", total: 15_800_000 },
-      { date: "T7", total: 11_500_000 },
-    ]
+    return []
   }, [orders])
 
   if (loading) {
@@ -84,25 +82,49 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Users" value={users.length} sub="+5 today" />
-        <StatCard label="Products" value={products.length} sub="Active" />
-        <StatCard label="Orders" value={orders.length} sub="Last 24h" />
-        <StatCard label="Revenue (VND)" value={revenue.toLocaleString()} sub="This month" />
+        <StatCard
+          label="Total Users"
+          value={users.length}
+          sub={`${users.filter(u => {
+            const date = (u as any).createdAt || "";
+            const today = new Date().toISOString().slice(0, 10);
+            return date.startsWith(today);
+          }).length} joined today`}
+        />
+        <StatCard
+          label="Products"
+          value={products.length}
+          sub={`${products.filter(p => p.status === 'APPROVED').length} Approved`}
+        />
+        <StatCard
+          label="Orders"
+          value={orders.length}
+          sub={`${orders.filter(o => {
+            const date = o.orderDate || "";
+            const today = new Date().toISOString().slice(0, 10);
+            return date.startsWith(today);
+          }).length} placed today`}
+        />
+        <StatCard
+          label="Revenue ($)"
+          value={revenue.toLocaleString()}
+          sub="Accumulated total"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <p className="font-semibold">Daily revenue</p>
-            <span className="text-xs text-slate-500">Realtime</span>
+            <span className="text-xs text-slate-500">Last 30 days activity</span>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <XAxis dataKey="date" />
+                <XAxis dataKey="date" hide />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2} />
+                <Line type="monotone" dataKey="total" stroke="#0ea5e9" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -110,11 +132,11 @@ export default function Dashboard() {
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
           <p className="font-semibold">System Summary</p>
           <div className="space-y-2 text-sm text-slate-600">
-            <p>• Active users: {users.filter(u => u.enabled !== false).length}</p>
-            <p>• Sellers: {users.filter(u => u.role === "SELLER").length}</p>
-            <p>• Buyers: {users.filter(u => u.role === "CUSTOMER").length}</p>
-            <p>• Out of stock products: {products.filter((p: any) => (p.stock || 0) === 0).length}</p>
-            <p>• Orders pending: {orders.filter((o: any) => o.status === "PENDING").length}</p>
+            <p>• Online Users: {users.filter(u => u.enabled !== false).length}</p>
+            <p>• Total Sellers: {users.filter(u => u.role === "SELLER").length}</p>
+            <p>• Total Buyers: {users.filter(u => u.role === "CUSTOMER").length}</p>
+            <p>• Pending Products: {products.filter((p: any) => p.status === 'PENDING').length}</p>
+            <p>• Pending Orders: {orders.filter((o: any) => o.status === "PENDING").length}</p>
           </div>
         </div>
       </div>

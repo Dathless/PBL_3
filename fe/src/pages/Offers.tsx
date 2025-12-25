@@ -43,29 +43,27 @@ export default function OffersPage() {
     const loadProducts = async () => {
       try {
         setLoading(true)
-        const allProducts = await productApi.getAll()
-        // Use the single product from DB (repeat it for display)
-        const productList = allProducts.slice(0, 2).map(p => ({
+        // Fetch actual discounted products from API
+        const discountedProducts = await productApi.getDiscounted()
+
+        const productList = discountedProducts.map(p => ({
           id: p.id,
           name: p.name,
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
-          price: Number(p.price),
-          originalPrice: Number(p.price) * 1.3,
-          discount: 23,
+          price: Number(p.price) * (1 - Number(p.discount) / 100), // Calculate discounted price
+          originalPrice: Number(p.price), // Original price
+          discount: Number(p.discount), // Use actual discount from backend
         }))
-        console.log("Product List for Flash Sale:", productList);
-        // Repeat the product to fill multiple slots
-        const repeatedProducts : Product[] = Array.from({length: 8}).map(
-          (_ , index) => productList[index % productList.length]
-        )
-        setFlashSaleProducts(repeatedProducts)
+
+        console.log("Discounted Products for Flash Sale:", productList);
+        setFlashSaleProducts(productList)
       } catch (error) {
-        console.error("Error loading products:", error)
+        console.error("Error loading discounted products:", error)
       } finally {
         setLoading(false)
       }
     }
-    
+
     loadProducts()
   }, [])
 
@@ -162,50 +160,50 @@ export default function OffersPage() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {flashSaleProducts.map((product) => (
-            <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
-              <div className="relative aspect-square bg-gray-200 overflow-hidden">
-                <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
-                  -{product.discount}%
-                </span>
-                <span className="absolute top-2 right-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded z-10">
-                  FLASH SALE
-                </span>
-                <Link to={`/product/${product.id}`}>
-                  <img
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    className="w-full h-full object-cover hover:scale-105 transition"
-                  />
-                </Link>
-              </div>
-              <div className="p-4">
-                <Link to={`/product/${product.id}`}>
-                  <h3 className="font-bold text-sm text-gray-900 line-clamp-2 mb-2 hover:text-cyan-600 transition">
-                    {product.name}
-                  </h3>
-                </Link>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-red-600 font-bold text-lg">${product.price.toLocaleString()}</span>
-                  <span className="text-gray-400 line-through text-sm">${product.originalPrice.toLocaleString()}</span>
+              <div key={product.id} className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
+                <div className="relative aspect-square bg-gray-200 overflow-hidden">
+                  <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
+                    -{product.discount}%
+                  </span>
+                  <span className="absolute top-2 right-2 bg-amber-400 text-black text-xs font-bold px-2 py-1 rounded z-10">
+                    FLASH SALE
+                  </span>
+                  <Link to={`/product/${product.id}`}>
+                    <img
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      className="w-full h-full object-cover hover:scale-105 transition"
+                    />
+                  </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleBuy(product)}
-                    className="w-full bg-cyan-500 text-white py-2 rounded-full font-bold text-xs hover:bg-cyan-600 transition text-center"
-                  >
-                    BUY NOW
-                  </button>
-                  <button
-                    onClick={() => handleAddToCart(product)}
-                    className="w-full border border-blue-500 text-blue-600 py-2 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
-                  >
-                    <ShoppingCart className="w-3 h-3" />
-                    ADD
-                  </button>
+                <div className="p-4">
+                  <Link to={`/product/${product.id}`}>
+                    <h3 className="font-bold text-sm text-gray-900 line-clamp-2 mb-2 hover:text-cyan-600 transition">
+                      {product.name}
+                    </h3>
+                  </Link>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-red-600 font-bold text-lg">${product.price.toLocaleString()}</span>
+                    <span className="text-gray-400 line-through text-sm">${product.originalPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleBuy(product)}
+                      className="w-full bg-cyan-500 text-white py-2 rounded-full font-bold text-xs hover:bg-cyan-600 transition text-center"
+                    >
+                      BUY NOW
+                    </button>
+                    <button
+                      onClick={() => handleAddToCart(product)}
+                      className="w-full border border-blue-500 text-blue-600 py-2 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                    >
+                      <ShoppingCart className="w-3 h-3" />
+                      ADD
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
           </div>
         )}
 

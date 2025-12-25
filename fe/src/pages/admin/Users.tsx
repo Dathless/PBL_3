@@ -23,7 +23,7 @@ export default function Users() {
     try {
       setLoading(true)
       console.log("Fetching users...")
-      
+
       const data = await userApi.getAll()
       console.log("Users data:", data)
       setUsers(data)
@@ -102,14 +102,14 @@ export default function Users() {
                 <th className="px-4 py-3 font-semibold text-slate-600">Email</th>
                 <th className="px-4 py-3 font-semibold text-slate-600">Role</th>
                 <th className="px-4 py-3 font-semibold text-slate-600">Status</th>
-                <th className="px-4 py-3 font-semibold text-slate-600 text-right">Hành động</th>
+                <th className="px-4 py-3 font-semibold text-slate-600 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(user => (
                 <tr key={user.id} className="border-t border-slate-100">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{user.fullname || "Chưa cập nhật"}</p>
+                    <p className="font-medium text-slate-800">{user.fullname || "Not updated"}</p>
                     <p className="text-xs text-slate-500">{user.phone}</p>
                   </td>
                   <td className="px-4 py-3 text-slate-700">{user.username}</td>
@@ -128,13 +128,12 @@ export default function Users() {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                        user.enabled
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${user.enabled
                           ? "bg-emerald-50 text-emerald-700"
                           : "bg-rose-50 text-rose-700"
-                      }`}
+                        }`}
                     >
-                      {user.enabled ? "Hoạt động" : "Đã khóa"}
+                      {user.enabled ? "Active" : "Blocked"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -143,7 +142,7 @@ export default function Users() {
                       disabled={savingId === user.id}
                       className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium hover:bg-slate-100"
                     >
-                      {user.enabled ? "Khóa" : "Mở khóa"}
+                      {user.enabled ? "Block" : "Unblock"}
                     </button>
                   </td>
                 </tr>

@@ -24,7 +24,7 @@ export default function Reviews() {
       const data = await reviewApi.getAll()
       setReviews(data)
     } catch (err: any) {
-      setError(err.message || "Không thể tải danh sách đánh giá")
+      setError(err.message || "Failed to load reviews")
     } finally {
       setLoading(false)
     }
@@ -85,7 +85,7 @@ export default function Reviews() {
                       {renderStars(review.rating)}
                     </div>
                     <span className="text-sm text-gray-500">
-                      {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                      {new Date(review.createdAt).toLocaleDateString('en-US')}
                     </span>
                   </div>
                   <div className="mb-2">
@@ -111,9 +111,8 @@ export default function Reviews() {
                 </div>
               </div>
               <div className="mt-2">
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  review.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                }`}>
+                <span className={`px-2 py-1 rounded-full text-xs ${review.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
                   {review.approved ? 'Approved' : 'Pending'}
                 </span>
               </div>

@@ -23,6 +23,7 @@ public class UserDTO {
     private String phone;
     private boolean enabled;
     private UserRole role;
+    private java.math.BigDecimal balance;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -113,5 +114,13 @@ public class UserDTO {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public java.math.BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(java.math.BigDecimal balance) {
+        this.balance = balance;
     }
 }

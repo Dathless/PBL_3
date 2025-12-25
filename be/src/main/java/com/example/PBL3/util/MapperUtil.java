@@ -12,22 +12,29 @@ import com.example.PBL3.dto.CartDTO;
 import com.example.PBL3.dto.CartItemDTO;
 import com.example.PBL3.dto.CategoryDTO;
 import com.example.PBL3.dto.LoginDTO;
+import com.example.PBL3.dto.NotificationDTO;
 import com.example.PBL3.dto.OrderDTO;
+import com.example.PBL3.dto.OrderForSeller;
 import com.example.PBL3.dto.OrderItemDTO;
 import com.example.PBL3.dto.PaymentDTO;
 import com.example.PBL3.dto.PaymentRequestDTO;
 import com.example.PBL3.dto.PaymentResponseDTO;
 import com.example.PBL3.dto.ProductDTO;
 import com.example.PBL3.dto.ProductImageDTO;
+import com.example.PBL3.dto.ProductVariantDTO;
+import com.example.PBL3.dto.PromotionDTO;
 import com.example.PBL3.dto.RegisterDTO;
 import com.example.PBL3.dto.UserDTO;
 import com.example.PBL3.model.Cart;
 import com.example.PBL3.model.CartItem;
 import com.example.PBL3.model.Category;
+import com.example.PBL3.model.Notification;
 import com.example.PBL3.model.Order;
 import com.example.PBL3.model.OrderItem;
 import com.example.PBL3.model.Payment;
 import com.example.PBL3.model.Product;
+import com.example.PBL3.model.ProductVariant;
+import com.example.PBL3.model.Promotion;
 import com.example.PBL3.model.User;
 import com.example.PBL3.model.status.OrderStatus;
 
@@ -36,9 +43,10 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class MapperUtil {
-	// ------------  USER -------------------//
+    // ------------ USER -------------------//
     public User toUser(UserDTO userDTO) {
-        if (userDTO == null) return null;
+        if (userDTO == null)
+            return null;
         User user = new User();
         user.setId(userDTO.getId());
         user.setFullname(userDTO.getFullname());
@@ -49,11 +57,13 @@ public class MapperUtil {
         user.setPhone(userDTO.getPhone());
         user.setEnabled(userDTO.isEnabled());
         user.setRole(userDTO.getRole());
+        user.setBalance(userDTO.getBalance());
         return user;
     }
 
     public UserDTO toUserDTO(User user) {
-    		if (user == null) return null;
+        if (user == null)
+            return null;
         UserDTO userDTO = new UserDTO();
         userDTO.setId(user.getId());
         userDTO.setFullname(user.getFullname());
@@ -64,13 +74,15 @@ public class MapperUtil {
         userDTO.setPhone(user.getPhone());
         userDTO.setEnabled(user.isEnabled());
         userDTO.setRole(user.getRole());
+        userDTO.setBalance(user.getBalance());
         userDTO.setCreatedAt(user.getCreatedAt());
         userDTO.setUpdatedAt(user.getUpdatedAt());
         return userDTO;
     }
 
     public LoginDTO toLoginDTO(User user) {
-        if (user == null) return null;
+        if (user == null)
+            return null;
         LoginDTO loginDTO = new LoginDTO();
         loginDTO.setUsername(user.getUsername());
         loginDTO.setPassword(user.getPassword());
@@ -78,7 +90,8 @@ public class MapperUtil {
     }
 
     public RegisterDTO toRegisterDTO(User user) {
-        if (user == null) return null;
+        if (user == null)
+            return null;
         RegisterDTO registerDTO = new RegisterDTO();
         registerDTO.setUsername(user.getUsername());
         registerDTO.setPassword(user.getPassword());
@@ -91,7 +104,8 @@ public class MapperUtil {
     // -------------------- PRODUCT -------------------//
 
     public ProductDTO toProductDTO(Product entity) {
-    		if (entity == null) return null;
+        if (entity == null)
+            return null;
         ProductDTO dto = new ProductDTO();
         dto.setId(entity.getId());
         dto.setName(entity.getName());
@@ -100,7 +114,7 @@ public class MapperUtil {
         dto.setBrand(entity.getBrand());
         dto.setDiscount(entity.getDiscount());
         dto.setRating(entity.getRating());
-        dto.setReviews(entity.getReviews());   
+        dto.setReviews(entity.getReviews());
         dto.setStock(entity.getStock());
         dto.setSize(entity.getSize());
         dto.setColor(entity.getColor());
@@ -108,16 +122,45 @@ public class MapperUtil {
         dto.setCategoryId(entity.getCategory() != null ? entity.getCategory().getId() : null);
         dto.setCategoryName(entity.getCategory() != null ? entity.getCategory().getName() : null);
         dto.setSellerId(entity.getSeller() != null ? entity.getSeller().getId() : null);
+        dto.setSeller(toUserDTO(entity.getSeller()));
+        dto.setCreatedAt(entity.getCreatedAt());
         if (entity.getImages() != null) {
-            dto.setImages(entity.getImages().stream().map(img ->
-                new ProductImageDTO(img.getId(), img.getImageUrl(), img.getAltText())
-            ).collect(Collectors.toList()));
+            dto.setImages(entity.getImages().stream()
+                    .map(img -> new ProductImageDTO(img.getId(), img.getImageUrl(), img.getAltText()))
+                    .collect(Collectors.toList()));
+        }
+        if (entity.getVariants() != null) {
+            dto.setVariants(entity.getVariants().stream()
+                    .map(this::toProductVariantDTO)
+                    .collect(Collectors.toList()));
         }
         return dto;
     }
 
+    public ProductVariantDTO toProductVariantDTO(ProductVariant entity) {
+        if (entity == null)
+            return null;
+        ProductVariantDTO dto = new ProductVariantDTO();
+        dto.setId(entity.getId());
+        dto.setSize(entity.getSize());
+        dto.setStock(entity.getStock());
+        return dto;
+    }
+
+    public ProductVariant toProductVariant(ProductVariantDTO dto, Product product) {
+        if (dto == null)
+            return null;
+        ProductVariant variant = new ProductVariant();
+        variant.setId(dto.getId());
+        variant.setSize(dto.getSize());
+        variant.setStock(dto.getStock());
+        variant.setProduct(product);
+        return variant;
+    }
+
     public Product toProduct(ProductDTO dto, Category category) {
-    		if (dto == null || category == null) return null;
+        if (dto == null || category == null)
+            return null;
         Product product = new Product();
         product.setId(dto.getId());
         product.setName(dto.getName());
@@ -133,35 +176,38 @@ public class MapperUtil {
         product.setStatus(dto.getStatus());
         product.setCategory(category);
 
-
         return product;
     }
- // ------------ CATEGORY ---------------//
+
+    // ------------ CATEGORY ---------------//
     public Category toCategory(CategoryDTO dto) {
-    		if (dto == null) return null;
-    		Category category = new Category();
+        if (dto == null)
+            return null;
+        Category category = new Category();
 
-    		category.setId(dto.getId());
-    		category.setName(dto.getName());
+        category.setId(dto.getId());
+        category.setName(dto.getName());
 
-    		return category;
+        return category;
     }
 
     public CategoryDTO toCategoryDTO(Category entity) {
-    		if (entity == null) return null;
+        if (entity == null)
+            return null;
 
-    		CategoryDTO dto = new CategoryDTO();
-    		Long parentId = entity.getParent() != null ? entity.getParent().getId() : null;
-    		dto.setId(entity.getId());
-    		dto.setName(entity.getName());
-    		dto.setParentId(parentId);
+        CategoryDTO dto = new CategoryDTO();
+        Long parentId = entity.getParent() != null ? entity.getParent().getId() : null;
+        dto.setId(entity.getId());
+        dto.setName(entity.getName());
+        dto.setParentId(parentId);
 
-    		return dto;
+        return dto;
     }
 
- // ------------ CART -------------------//
+    // ------------ CART -------------------//
     public CartDTO toCartDTO(Cart entity) {
-        if (entity == null) return null;
+        if (entity == null)
+            return null;
         CartDTO dto = new CartDTO();
         dto.setId(entity.getId());
         dto.setUserId(entity.getUser() != null ? entity.getUser().getId() : null);
@@ -172,18 +218,21 @@ public class MapperUtil {
     }
 
     public Cart toCart(CartDTO dto, User user, List<CartItem> items) {
-        if (dto == null) return null;
+        if (dto == null)
+            return null;
         Cart cart = new Cart();
         cart.setId(dto.getId());
         cart.setUser(user);
         cart.setItems(items);
-        if (items != null) items.forEach(i -> i.setCart(cart));
+        if (items != null)
+            items.forEach(i -> i.setCart(cart));
         return cart;
     }
 
     // ------------ CART ITEM -------------------//
     public CartItemDTO toCartItemDTO(CartItem entity) {
-        if (entity == null) return null;
+        if (entity == null)
+            return null;
         CartItemDTO dto = new CartItemDTO();
         dto.setId(entity.getId());
         dto.setProductId(entity.getProduct() != null ? entity.getProduct().getId() : null);
@@ -195,13 +244,15 @@ public class MapperUtil {
 
     public CartItemDTO toCartItemDTO(UUID productId, Integer quantity) {
         CartItemDTO dto = new CartItemDTO();
-        if (productId != null) dto.setProductId(productId);
+        if (productId != null)
+            dto.setProductId(productId);
         dto.setQuantity(quantity);
         return dto;
-    } 
+    }
 
     public CartItem toCartItem(CartItemDTO dto, Product product) {
-        if (dto == null) return null;
+        if (dto == null)
+            return null;
         CartItem item = new CartItem();
         item.setId(dto.getId());
         item.setProduct(product);
@@ -210,9 +261,11 @@ public class MapperUtil {
         item.setSelectedSize(dto.getSelectedSize());
         return item;
     }
+
     // ------------ ORDER -------------------//
     public OrderDTO toOrderDTO(Order order) {
-        if (order == null) return null;
+        if (order == null)
+            return null;
         OrderDTO dto = new OrderDTO();
         dto.setId(order.getId());
         dto.setCustomerId(order.getCustomer().getId());
@@ -231,13 +284,14 @@ public class MapperUtil {
     }
 
     public Order toOrder(OrderDTO dto, User customer, List<Product> products) {
-        if (dto == null) return null;
+        if (dto == null)
+            return null;
         Order order = new Order();
         order.setCustomer(customer);
         order.setShippingAddress(dto.getShippingAddress());
         order.setPaymentMethod(dto.getPaymentMethod());
         order.setOrderDate(dto.getOrderDate() != null ? dto.getOrderDate() : LocalDateTime.now());
-        order.setStatus(dto.getStatus() != null ? dto.getStatus() : OrderStatus.PENDING);
+        order.setStatus(dto.getStatus() != null ? dto.getStatus() : OrderStatus.PENDING_CONFIRMATION);
 
         if (dto.getItems() != null) {
             List<OrderItem> items = dto.getItems().stream()
@@ -247,17 +301,18 @@ public class MapperUtil {
                         Product product = products.stream()
                                 .filter(p -> p.getId().equals(itemDto.getProductId()))
                                 .findFirst()
-                                .orElseThrow(() -> new RuntimeException("Product not found: " + itemDto.getProductId()));
+                                .orElseThrow(
+                                        () -> new RuntimeException("Product not found: " + itemDto.getProductId()));
                         item.setProduct(product);
                         item.setQuantity(itemDto.getQuantity());
-                        
+
                         // Ensure price is BigDecimal and not null
                         BigDecimal price = itemDto.getPrice();
                         if (price == null) {
                             throw new RuntimeException("Price cannot be null for product: " + itemDto.getProductId());
                         }
                         item.setPrice(price);
-                        
+
                         item.setSelectedColor(itemDto.getSelectedColor());
                         item.setSelectedSize(itemDto.getSelectedSize());
                         item.setOrder(order);
@@ -280,7 +335,8 @@ public class MapperUtil {
     // ------------ ORDER ITEM -------------------//
 
     public OrderItemDTO toOrderItemDTO(OrderItem item) {
-        if (item == null) return null;
+        if (item == null)
+            return null;
         OrderItemDTO dto = new OrderItemDTO();
         dto.setId(item.getId());
         dto.setProductId(item.getProduct().getId());
@@ -289,11 +345,34 @@ public class MapperUtil {
         dto.setPrice(item.getPrice());
         dto.setSelectedColor(item.getSelectedColor());
         dto.setSelectedSize(item.getSelectedSize());
+        if (item.getProduct().getImages() != null && !item.getProduct().getImages().isEmpty()) {
+            dto.setProductImageUrl(item.getProduct().getImages().get(0).getImageUrl());
+        }
+        return dto;
+    }
+
+    public OrderForSeller toOrderForSeller(OrderItem item) {
+        if (item == null)
+            return null;
+        OrderForSeller dto = new OrderForSeller();
+        dto.setOrderId(item.getOrder().getId());
+        dto.setProductId(item.getProduct().getId());
+        dto.setProductName(item.getProduct().getName());
+        dto.setCustomerId(item.getOrder().getCustomer().getId());
+        dto.setCustomerName(item.getOrder().getCustomer().getFullname());
+        dto.setSellerId(item.getProduct().getSeller().getId());
+        dto.setQuantity(item.getQuantity());
+        dto.setPrice(item.getPrice());
+        dto.setSelectedColor(item.getSelectedColor());
+        dto.setSelectedSize(item.getSelectedSize());
+        dto.setStatus(item.getOrder().getStatus());
+        dto.setOrderDate(item.getOrder().getOrderDate());
         return dto;
     }
 
     public OrderItem toOrderItem(OrderItemDTO dto, Order order, Product product) {
-        if (dto == null) return null;
+        if (dto == null)
+            return null;
         OrderItem item = new OrderItem();
         item.setOrder(order);
         item.setProduct(product);
@@ -307,7 +386,8 @@ public class MapperUtil {
     // ----------- PAYMENT ------------//
 
     public PaymentDTO toPaymentDTO(Payment payment) {
-        if (payment == null) return null;
+        if (payment == null)
+            return null;
         PaymentDTO dto = new PaymentDTO();
         dto.setId(payment.getId());
         dto.setOrderId(payment.getOrder().getId());
@@ -321,7 +401,8 @@ public class MapperUtil {
     }
 
     public Payment toPayment(PaymentDTO dto, Order order) {
-        if (dto == null) return null;
+        if (dto == null)
+            return null;
         Payment payment = new Payment();
         payment.setId(dto.getId());
         payment.setOrder(order);
@@ -335,7 +416,8 @@ public class MapperUtil {
     }
 
     public Payment toPayment(PaymentRequestDTO dto, Order order) {
-        if (dto == null) return null;
+        if (dto == null)
+            return null;
         Payment payment = new Payment();
         payment.setOrder(order);
         payment.setAmount(dto.getAmount());
@@ -344,7 +426,8 @@ public class MapperUtil {
     }
 
     public PaymentResponseDTO toPaymentResponseDTO(Payment payment) {
-        if (payment == null) return null;
+        if (payment == null)
+            return null;
         PaymentResponseDTO dto = new PaymentResponseDTO();
         dto.setId(payment.getId());
         dto.setOrderId(payment.getOrder().getId());
@@ -353,6 +436,49 @@ public class MapperUtil {
         dto.setPaymentDate(payment.getPaymentDate());
         dto.setPaymentStatus(payment.getStatus());
         dto.setPaymentMethod(payment.getMethod());
+        return dto;
+    }
+
+    // ------------ PROMOTION -------------------//
+    public PromotionDTO toPromotionDTO(Promotion entity) {
+        if (entity == null)
+            return null;
+        PromotionDTO dto = new PromotionDTO();
+        dto.setId(entity.getId());
+        dto.setName(entity.getName());
+        dto.setDescription(entity.getDescription());
+        dto.setDiscountPercent(entity.getDiscountPercent());
+        dto.setStartDate(entity.getStartDate());
+        dto.setEndDate(entity.getEndDate());
+        dto.setActive(entity.isActive());
+        return dto;
+    }
+
+    public Promotion toPromotion(PromotionDTO dto) {
+        if (dto == null)
+            return null;
+        Promotion entity = new Promotion();
+        entity.setId(dto.getId());
+        entity.setName(dto.getName());
+        entity.setDescription(dto.getDescription());
+        entity.setDiscountPercent(dto.getDiscountPercent());
+        entity.setStartDate(dto.getStartDate());
+        entity.setEndDate(dto.getEndDate());
+        entity.setActive(dto.isActive());
+        return entity;
+    }
+
+    // ------------ NOTIFICATION ---------------//
+    public NotificationDTO toNotificationDTO(Notification entity) {
+        if (entity == null)
+            return null;
+        NotificationDTO dto = new NotificationDTO();
+        dto.setId(entity.getId());
+        dto.setTitle(entity.getTitle());
+        dto.setMessage(entity.getMessage());
+        dto.setType(entity.getType());
+        dto.setRead(entity.isRead());
+        dto.setCreatedAt(entity.getCreatedAt());
         return dto;
     }
 

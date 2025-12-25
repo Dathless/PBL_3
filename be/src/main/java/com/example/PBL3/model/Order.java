@@ -28,11 +28,8 @@ public class Order {
     private LocalDateTime orderDate = LocalDateTime.now();
 
     @Enumerated(EnumType.STRING)
-    @Column(
-        name = "status",
-        columnDefinition = "ENUM('PENDING','PAID','SHIPPED','DELIVERED','CANCELED') DEFAULT 'PENDING'"
-    )
-    private OrderStatus status = OrderStatus.PENDING;
+    @Column(name = "status", columnDefinition = "ENUM('PENDING_CONFIRMATION','WAITING_FOR_PICKUP','SHIPPING','DELIVERED','CANCEL_REQUESTED','CANCELED') DEFAULT 'PENDING_CONFIRMATION'")
+    private OrderStatus status = OrderStatus.PENDING_CONFIRMATION;
 
     @Column(name = "total_amount", precision = 10, scale = 2)
     private BigDecimal totalAmount;
@@ -41,11 +38,7 @@ public class Order {
     private String shippingAddress;
 
     @Enumerated(EnumType.STRING)
-    @Column(
-        name = "payment_method",
-        nullable = false,
-        columnDefinition = "ENUM('COD','EWALLET')"
-    )
+    @Column(name = "payment_method", nullable = false, columnDefinition = "ENUM('COD','EWALLET','BANK_TRANSFER','E_WALLET','BANK_CARD')")
     private PaymentMethod paymentMethod;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)

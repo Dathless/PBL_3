@@ -11,6 +11,7 @@ import Content from "./Content"
 import Operations from "./Operations"
 import Reports from "./Reports"
 import Complaints from "./Complaints"
+import Payouts from "./Payouts"
 import Settings from "./Settings"
 import Security from "./Security"
 
@@ -26,6 +27,7 @@ export default function AdminRouter() {
         <Route path="categories" element={<Categories />} />
         <Route path="promotions" element={<Promotions />} />
         <Route path="reviews" element={<Reviews />} />
+        <Route path="payouts" element={<Payouts />} />
         <Route path="content" element={<Content />} />
         <Route path="operations" element={<Operations />} />
         <Route path="reports" element={<Reports />} />
