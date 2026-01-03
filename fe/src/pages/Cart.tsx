@@ -5,9 +5,11 @@ import { Trash2, Plus, Minus, ShoppingCart, Percent, Ticket } from "lucide-react
 import { Link, useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { useCart, type Promotion } from "@/contexts/cart-context"
+import { useToast } from "@/hooks/use-toast"
 import { promotionApi } from "@/lib/api"
 
 export default function CartPage() {
+  const { toast } = useToast()
   const {
     cartItems,
     removeFromCart,
@@ -46,8 +48,16 @@ export default function CartPage() {
     const fetchProductsForYou = async () => {
       try {
         // Get top selling or random products
-        const products = await import("@/lib/api").then(m => m.productApi.getTopSelling(5))
-        setProductsForYou(products)
+        const results = await import("@/lib/api").then(m => m.productApi.getTopSelling(5))
+        const mappedProducts = results.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: Number(p.price) || 0,
+          image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
+          discount: Number(p.discount) || 0,
+          stock: Number(p.stock) || 0,
+        }))
+        setProductsForYou(mappedProducts)
       } catch (err) {
         console.error("Failed to fetch products for you", err)
       }
@@ -154,6 +164,16 @@ export default function CartPage() {
                             )}
                           </div>
                         )}
+                        {(item.quantity > (item.stock ?? 0)) && (
+                          <p className="text-[10px] text-red-500 font-bold mt-1 bg-red-50 px-2 py-0.5 rounded-full inline-block">
+                            Only {item.stock ?? 0} items left. Please reduce quantity.
+                          </p>
+                        )}
+                        {(item.stock ?? 0) <= 0 && (
+                          <p className="text-[10px] text-red-500 font-bold mt-1 bg-red-50 px-2 py-0.5 rounded-full inline-block">
+                            Out of stock. Please remove to checkout.
+                          </p>
+                        )}
                       </div>
                       <p className="font-black text-red-600">${item.price}</p>
                     </div>
@@ -177,7 +197,8 @@ export default function CartPage() {
                         <span className="px-3 font-bold text-sm min-w-[2rem] text-center">{item.quantity}</span>
                         <button
                           onClick={() => item.cartItemId && handleUpdateQuantity(item.cartItemId, item.quantity + 1)}
-                          className="p-1 hover:bg-white hover:shadow-sm rounded transition"
+                          className="p-1 hover:bg-white hover:shadow-sm rounded transition disabled:opacity-30"
+                          disabled={item.quantity >= (item.stock ?? 0)}
                         >
                           <Plus className="w-4 h-4 text-gray-600" />
                         </button>
@@ -293,7 +314,7 @@ export default function CartPage() {
               </div>
 
               <button
-                disabled={selectedItems.length === 0}
+                disabled={selectedItems.length === 0 || selectedItems.some(item => item.quantity > (item.stock ?? 0) || (item.stock ?? 0) <= 0)}
                 onClick={() => navigate("/checkout")}
                 className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg hover:bg-red-700 transition shadow-lg shadow-red-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
               >
@@ -331,11 +352,14 @@ export default function CartPage() {
                     />
                   </div>
                   <p className="font-semibold text-sm text-gray-800 group-hover:text-cyan-600 line-clamp-1">{product.name}</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-red-600 font-bold">${(Number(product.price) * (1 - Number(product.discount || 0) / 100)).toFixed(2)}</p>
-                    {Number(product.discount) > 0 && (
-                      <p className="text-gray-400 text-xs line-through">${product.price}</p>
-                    )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <p className="text-red-600 font-bold">${(Number(product.price) * (1 - Number(product.discount || 0) / 100)).toFixed(2)}</p>
+                      {Number(product.discount) > 0 && (
+                        <p className="text-gray-400 text-xs line-through">${product.price}</p>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-500 font-medium">Stock: {product.stock}</p>
                   </div>
                 </Link>
                 <div className="grid grid-cols-2 gap-2 mt-2">
@@ -354,6 +378,12 @@ export default function CartPage() {
                         name: product.name,
                         price: Number(product.price),
                         image: product.image,
+                      }).catch(err => {
+                        toast({
+                          title: "Error",
+                          description: err.message,
+                          variant: "destructive"
+                        })
                       })
                     }}
                     className="text-xs border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold hover:bg-blue-50 transition flex items-center justify-center gap-1"

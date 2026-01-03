@@ -5,6 +5,8 @@ import { useState, useEffect } from "react"
 import { Link, useParams, useNavigate } from "react-router-dom"
 import { ShoppingCart } from "lucide-react"
 import { useBuyNow } from "@/contexts/buy-now-context"
+import { useCart } from "@/contexts/cart-context"
+import { useToast } from "@/hooks/use-toast"
 import { AddToCartModal } from "@/components/add-to-cart-modal"
 import { productApi } from "@/lib/api"
 
@@ -27,6 +29,8 @@ interface Product {
   image: string
   originalPrice: number
   discount: number
+  stock: number
+  status: string
 }
 
 export default function CategoryPage() {
@@ -36,6 +40,8 @@ export default function CategoryPage() {
   const [sortBy, setSortBy] = useState("newest")
   const navigate = useNavigate()
   const { setBuyNowProduct } = useBuyNow()
+  const { addToCart } = useCart()
+  const { toast } = useToast()
   const [selectedProduct, setSelectedProduct] = useState<{ id: string; name: string; price: number; image: string } | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [categoryProducts, setCategoryProducts] = useState<Array<{
@@ -45,6 +51,8 @@ export default function CategoryPage() {
     image: string
     originalPrice: number
     discount: number
+    stock: number
+    status: string
   }>>([])
   const [loading, setLoading] = useState(true)
 
@@ -65,6 +73,8 @@ export default function CategoryPage() {
           // Ensure these fields exist or have default values
           originalPrice: Number(p.originalPrice) || Number(p.price) * 1.3,
           discount: Number(p.discount) || 0,
+          stock: Number(p.stock) || 0,
+          status: p.status || "AVAILABLE",
         }))
 
         setCategoryProducts(products)
@@ -158,6 +168,13 @@ export default function CategoryPage() {
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
+                        {(product.stock <= 0 || product.status === 'OUT_OF_STOCK') && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                              Sold Out
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </Link>
                     <div className="p-3">
@@ -166,20 +183,31 @@ export default function CategoryPage() {
                           {product.name}
                         </h3>
                       </Link>
-                      <p className="text-red-600 font-bold text-sm mb-3">${product.price}</p>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-red-600 font-bold text-sm">${product.price}</p>
+                        <p className="text-[10px] text-gray-500 font-medium">Stock: {product.stock}</p>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           onClick={() => handleBuy(product)}
-                          className="w-full bg-cyan-500 text-white py-1.5 rounded-full font-bold text-xs hover:bg-cyan-600 transition text-center"
+                          disabled={product.stock <= 0 || product.status === 'OUT_OF_STOCK'}
+                          className={`w-full py-1.5 rounded-full font-bold text-xs transition text-center ${product.stock <= 0 || product.status === 'OUT_OF_STOCK'
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            : "bg-cyan-500 text-white hover:bg-cyan-600"
+                            }`}
                         >
-                          BUY NOW
+                          {product.stock <= 0 || product.status === 'OUT_OF_STOCK' ? "OUT" : "BUY NOW"}
                         </button>
                         <button
                           onClick={() => handleAddToCart(product)}
-                          className="w-full border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                          disabled={product.stock <= 0 || product.status === 'OUT_OF_STOCK'}
+                          className={`w-full py-1.5 rounded-full font-bold text-xs transition flex items-center justify-center gap-1 ${product.stock <= 0 || product.status === 'OUT_OF_STOCK'
+                            ? "border border-gray-300 text-gray-400 cursor-not-allowed"
+                            : "border border-blue-500 text-blue-600 hover:bg-blue-50"
+                            }`}
                         >
                           <ShoppingCart className="w-3 h-3" />
-                          ADD
+                          {product.stock <= 0 || product.status === 'OUT_OF_STOCK' ? "SOLD" : "ADD"}
                         </button>
                       </div>
                     </div>

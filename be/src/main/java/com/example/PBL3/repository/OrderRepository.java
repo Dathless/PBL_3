@@ -11,9 +11,9 @@ import java.util.UUID;
 public interface OrderRepository extends JpaRepository<Order, UUID> {
 	boolean existsById(UUID id);
 
-	@Query("SELECT o FROM Order o JOIN FETCH o.customer c LEFT JOIN FETCH o.items i WHERE c.id = :customerId")
+	@Query("SELECT o FROM Order o JOIN FETCH o.customer c LEFT JOIN FETCH o.items i WHERE c.id = :customerId ORDER BY o.orderDate DESC")
 	List<Order> findByCustomerId(@Param("customerId") UUID customerId);
 
-	@Query("SELECT o FROM Order o JOIN FETCH o.customer c")
+	@Query("SELECT o FROM Order o JOIN FETCH o.customer c ORDER BY o.orderDate DESC")
 	List<Order> findAll();
 }

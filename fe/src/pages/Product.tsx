@@ -11,6 +11,7 @@ import { useCart } from "@/contexts/cart-context"
 import { useBuyNow } from "@/contexts/buy-now-context"
 import { useToast } from "@/hooks/use-toast"
 import { productApi, reviewApi } from "@/lib/api"
+import { ProductImageZoom } from "@/components/ProductImageZoom"
 
 // Helper function to parse JSON string to array
 function parseJsonArray(jsonString: string | null | undefined): string[] {
@@ -33,17 +34,24 @@ export default function ProductPage() {
   const [selectedColor, setSelectedColor] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
+  const [availableStock, setAvailableStock] = useState(0)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [actionType, setActionType] = useState<"add-to-cart" | "buy-now" | null>(null)
   const [reviews, setReviews] = useState<any[]>([])
   const [loadingReviews, setLoadingReviews] = useState(false)
-  const [variantStock, setVariantStock] = useState<number | null>(null)
+
   const [showMessageModal, setShowMessageModal] = useState(false)
   const { isAuthenticated, user, loading: authLoading } = useAuth()
   const { addToCart } = useCart()
   const { setBuyNowProduct } = useBuyNow()
   const navigate = useNavigate()
   const { toast } = useToast()
+
+  const effectiveStock = availableStock > 0
+    ? availableStock
+    : (product?.stock > 0 && (!product?.variants || product.variants.length === 0)
+      ? product.stock
+      : 0);
 
   // Redirect seller to seller dashboard
   useEffect(() => {
@@ -92,6 +100,9 @@ export default function ProductPage() {
         if (sizes.length > 0) {
           setSelectedSize(sizes[0])
         }
+
+        // Set initial available stock
+        setAvailableStock(productData.stock || 0)
       } catch (error: any) {
         console.error("Error loading product:", error)
         toast({
@@ -139,19 +150,25 @@ export default function ProductPage() {
   // Load variant stock when color or size changes
   useEffect(() => {
     const loadVariantStock = async () => {
-      if (!id) return
+      if (!product?.id) return
+
       try {
-        const response = await productApi.getVariantStock(id, selectedColor, selectedSize)
-        setVariantStock(response.stock)
+        const response = await productApi.getVariantStock(product.id, selectedColor, selectedSize)
+        setAvailableStock(response.stock)
+
+        // If current quantity is more than available stock, reset it
+        if (quantity > response.stock) {
+          setQuantity(Math.max(1, response.stock))
+        }
       } catch (error) {
-        console.error('Failed to load variant stock:', error)
-        setVariantStock(null)
+        console.error("Error loading variant stock:", error)
       }
     }
-    if (selectedColor || selectedSize) {
+
+    if (product) {
       loadVariantStock()
     }
-  }, [id, selectedColor, selectedSize])
+  }, [product?.id, selectedColor, selectedSize])
 
   if (loading) {
     return (
@@ -199,6 +216,7 @@ export default function ProductPage() {
         image: product.image,
         color: selectedColor || undefined,
         size: selectedSize || undefined,
+        quantity: quantity,
       })
       toast({
         title: "Added to cart",
@@ -229,8 +247,11 @@ export default function ProductPage() {
       name: product.name,
       price: Number(product.price),
       image: product.image,
+      quantity: quantity,
+      color: selectedColor || undefined,
+      size: selectedSize || undefined,
     })
-    navigate(`/buy-now?id=${product.id}`)
+    navigate(`/buy-now?id=${product.id}&quantity=${quantity}${selectedColor ? `&color=${selectedColor}` : ""}${selectedSize ? `&size=${selectedSize}` : ""}`)
   }
 
   const handleLoginConfirm = () => {
@@ -291,13 +312,10 @@ export default function ProductPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           {/* Product Image */}
           <div>
-            <div className="bg-gray-100 rounded-lg aspect-square mb-6 overflow-hidden">
-              <img
-                src={product.image || "/placeholder.svg"}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <ProductImageZoom
+              src={product.image || "/placeholder.svg"}
+              alt={product.name}
+            />
             {product.images && product.images.length > 0 && (
               <div className="mt-4 h-28 overflow-x-auto">
                 <div className="flex gap-3 h-full">
@@ -327,7 +345,26 @@ export default function ProductPage() {
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
               <div className="flex items-center gap-4 mb-3">
-                <span className="text-3xl font-bold text-red-600">${Number(product.price).toFixed(2)}</span>
+                {product.discount > 0 ? (
+                  <>
+                    <span className="text-3xl font-bold text-red-600">
+                      ${(Number(product.price) * (1 - Number(product.discount) / 100)).toFixed(2)}
+                    </span>
+                    <span className="text-xl text-gray-400 line-through">
+                      ${Number(product.price).toFixed(2)}
+                    </span>
+                    <span className="bg-red-500 text-white px-2 py-0.5 rounded text-sm font-bold">
+                      -{product.discount}%
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-3xl font-bold text-red-600">${Number(product.price).toFixed(2)}</span>
+                )}
+                {(product.stock <= 0 || product.status === 'OUT_OF_STOCK') && (
+                  <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-bold border border-red-200">
+                    SOLD OUT
+                  </span>
+                )}
               </div>
 
               {/* Seller Information */}
@@ -391,50 +428,58 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* Stock Display */}
-            {variantStock !== null && (
-              <div className="mb-6">
-                {variantStock > 0 ? (
-                  <p className="text-sm text-green-600 font-semibold flex items-center gap-2">
-                    <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                    {variantStock} units available in stock
-                  </p>
-                ) : (
-                  <p className="text-sm text-red-600 font-semibold flex items-center gap-2">
-                    <span className="w-2 h-2 bg-red-600 rounded-full"></span>
-                    Out of stock
-                  </p>
-                )}
-              </div>
-            )}
+
 
             {/* Quantity and CTA */}
             <div className="flex flex-col gap-4 mb-8">
-              <div className="flex items-center border border-gray-300 rounded-lg">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100"
-                >
-                  −
-                </button>
-                <span className="px-6 py-2 font-semibold">{quantity}</span>
-                <button onClick={() => setQuantity(quantity + 1)} className="px-4 py-2 text-gray-600 hover:bg-gray-100">
-                  +
-                </button>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center border border-gray-300 rounded-lg">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                    disabled={quantity <= 1}
+                  >
+                    −
+                  </button>
+                  <span className="px-6 py-2 font-semibold">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(Math.min(effectiveStock, quantity + 1))}
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                    disabled={quantity >= effectiveStock}
+                  >
+                    +
+                  </button>
+                </div>
+                <span className="text-sm text-gray-500 font-medium">
+                  {effectiveStock > 0
+                    ? `${effectiveStock} available`
+                    : <span className="text-red-500">Out of stock</span>}
+                </span>
               </div>
+              {effectiveStock > 0 && effectiveStock < 10 && (
+                <p className="text-sm text-amber-600 font-medium">Only {effectiveStock} items left in stock!</p>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={handleBuyNow}
-                  className="w-full bg-cyan-500 text-white py-3 rounded-full font-bold hover:bg-cyan-600 transition flex items-center justify-center gap-2"
+                  disabled={product?.stock <= 0 || product?.status === 'OUT_OF_STOCK' || effectiveStock <= 0}
+                  className={`w-full py-3 rounded-full font-bold transition flex items-center justify-center gap-2 ${product?.stock <= 0 || product?.status === 'OUT_OF_STOCK' || effectiveStock <= 0
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-cyan-500 text-white hover:bg-cyan-600"
+                    }`}
                 >
-                  BUY NOW - ${Number(product.price).toFixed(2)}
+                  {product?.stock <= 0 || product?.status === 'OUT_OF_STOCK' || effectiveStock <= 0 ? "OUT OF STOCK" : `BUY NOW - $${Number(product?.price).toFixed(2)}`}
                 </button>
                 <button
                   onClick={handleAddToCart}
-                  className="w-full border-2 border-blue-500 text-blue-600 py-3 rounded-full font-bold hover:bg-blue-50 transition flex items-center justify-center gap-2"
+                  disabled={product?.stock <= 0 || product?.status === 'OUT_OF_STOCK' || effectiveStock <= 0}
+                  className={`w-full py-3 rounded-full font-bold transition flex items-center justify-center gap-2 ${product?.stock <= 0 || product?.status === 'OUT_OF_STOCK' || effectiveStock <= 0
+                    ? "border-2 border-gray-300 text-gray-400 cursor-not-allowed"
+                    : "border-2 border-blue-500 text-blue-600 hover:bg-blue-50"
+                    }`}
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  <span>ADD</span>
+                  <span>{product?.stock <= 0 || product?.status === 'OUT_OF_STOCK' || effectiveStock <= 0 ? "OUT OF STOCK" : "ADD"}</span>
                 </button>
               </div>
             </div>

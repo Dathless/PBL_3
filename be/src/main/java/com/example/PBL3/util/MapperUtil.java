@@ -143,6 +143,7 @@ public class MapperUtil {
         ProductVariantDTO dto = new ProductVariantDTO();
         dto.setId(entity.getId());
         dto.setSize(entity.getSize());
+        dto.setColor(entity.getColor());
         dto.setStock(entity.getStock());
         return dto;
     }
@@ -153,6 +154,7 @@ public class MapperUtil {
         ProductVariant variant = new ProductVariant();
         variant.setId(dto.getId());
         variant.setSize(dto.getSize());
+        variant.setColor(dto.getColor());
         variant.setStock(dto.getStock());
         variant.setProduct(product);
         return variant;

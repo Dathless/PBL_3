@@ -1,5 +1,5 @@
 import type React from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { useState, useEffect } from "react"
 
 import { TopBanner } from "@/components/top-banner"
@@ -573,12 +573,12 @@ export default function CheckoutPage() {
               <h2 className="text-xl font-bold mb-6">ORDER SUMMARY</h2>
               <div className="space-y-4 mb-6 pb-6 border-b border-gray-300">
                 {selectedItems.map((item) => (
-                  <div key={item.id} className="flex justify-between">
-                    <span className="text-gray-600">
+                  <Link key={item.id} to={`/product/${item.productId}`} className="flex justify-between hover:text-cyan-600 transition">
+                    <span className="text-gray-600 truncate mr-2">
                       {item.name} x {item.quantity}
                     </span>
-                    <span className="font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
-                  </div>
+                    <span className="font-semibold shrink-0">${(item.price * item.quantity).toFixed(2)}</span>
+                  </Link>
                 ))}
               </div>
               <div className="space-y-2 mb-6 pb-6 border-b border-gray-300">

@@ -44,4 +44,6 @@ public interface ProductService {
     List<ProductDTO> getDiscountedProducts();
 
     List<ProductDTO> getTopSellingProducts(int limit);
+
+    void synchronizeAllStock();
 }

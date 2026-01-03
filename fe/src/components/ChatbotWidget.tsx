@@ -45,8 +45,8 @@ export function ChatbotWidget() {
         }
 
         // Product details and stock
-        if (msg.includes('stock') || msg.includes('available') || msg.includes('in stock') || msg.includes('out of stock')) {
-            return '📦 Stock Information:\n• Stock availability is shown on each product page\n• Select color and size to see exact quantity\n• Green indicator = In stock\n• Red indicator = Out of stock\n\nYou can message the seller directly for restock information!'
+        if (msg.includes('stock') || msg.includes('available')) {
+            return '📦 Stock Information:\n• Stock availability is shown on each product page\n• Select color and size to see accurate details\n\nYou can message the seller directly for more information!'
         }
 
         // Adding to cart
@@ -143,7 +143,7 @@ export function ChatbotWidget() {
 
         // Colors and variants
         if (msg.includes('color') || msg.includes('variant') || msg.includes('option')) {
-            return '🎨 Colors & Variants:\n\n**Selecting Options:**\n1. Choose color from swatches\n2. Select size from dropdown\n3. Stock updates automatically\n4. Price may vary by variant\n\n**Stock by Variant:**\n• Each color/size has own stock\n• Green = Available\n• Red = Out of stock\n• Message seller for restocks\n\n**Color Accuracy:**\n• Colors may vary slightly\n• Check product photos\n• Read descriptions\n• Contact seller if unsure'
+            return '🎨 Colors & Variants:\n\n**Selecting Options:**\n1. Choose color from swatches\n2. Select size from dropdown\n3. Details update automatically\n4. Price may vary by variant\n\n**Stock by Variant:**\n• Each color/size has its own availability\n• Message seller if you have questions\n\n**Color Accuracy:**\n• Colors may vary slightly\n• Check product photos\n• Read descriptions\n• Contact seller if unsure'
         }
 
         // Help and support
@@ -243,8 +243,8 @@ export function ChatbotWidget() {
                             >
                                 <div
                                     className={`max-w-[80%] rounded-2xl px-4 py-2 ${message.isBot
-                                            ? 'bg-white text-gray-800 border border-gray-200'
-                                            : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
+                                        ? 'bg-white text-gray-800 border border-gray-200'
+                                        : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
                                         }`}
                                 >
                                     {message.isBot && (

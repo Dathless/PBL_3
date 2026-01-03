@@ -170,8 +170,8 @@ export default function MyOrdersPage() {
                                     {/* Order Items */}
                                     <div className="p-6 space-y-4">
                                         {order.items.map((item, idx) => (
-                                            <div key={idx} className="flex gap-4">
-                                                <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                                            <Link key={idx} to={`/product/${item.productId}`} className="flex gap-4 group cursor-pointer">
+                                                <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden group-hover:ring-2 ring-cyan-500 transition">
                                                     {item.productImageUrl ? (
                                                         <img src={item.productImageUrl} alt={item.productName} className="w-full h-full object-cover" />
                                                     ) : (
@@ -179,11 +179,11 @@ export default function MyOrdersPage() {
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <h4 className="font-bold text-gray-800 truncate">{item.productName}</h4>
+                                                    <h4 className="font-bold text-gray-800 truncate group-hover:text-cyan-600 transition">{item.productName}</h4>
                                                     <p className="text-sm text-gray-500 mt-1">Quantity: {item.quantity} • {item.selectedColor || 'N/A'} • {item.selectedSize || 'N/A'}</p>
                                                     <p className="text-sm font-bold text-cyan-600 mt-2">${item.price.toLocaleString()}</p>
                                                 </div>
-                                            </div>
+                                            </Link>
                                         ))}
                                     </div>
 
@@ -282,8 +282,8 @@ export default function MyOrdersPage() {
                                 <h3 className="text-lg font-bold text-gray-900 mb-4">Items Summary</h3>
                                 <div className="space-y-4">
                                     {selectedOrder.items.map((item, idx) => (
-                                        <div key={idx} className="flex gap-4 items-center">
-                                            <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                                        <Link key={idx} to={`/product/${item.productId}`} className="flex gap-4 items-center group cursor-pointer" onClick={() => setIsModalOpen(false)}>
+                                            <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden shrink-0 group-hover:ring-2 ring-cyan-500 transition">
                                                 {item.productImageUrl ? (
                                                     <img src={item.productImageUrl} alt={item.productName} className="w-full h-full object-cover" />
                                                 ) : (
@@ -291,11 +291,11 @@ export default function MyOrdersPage() {
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-gray-800 text-sm truncate">{item.productName}</h4>
+                                                <h4 className="font-bold text-gray-800 text-sm truncate group-hover:text-cyan-600 transition">{item.productName}</h4>
                                                 <p className="text-xs text-gray-500">Qty: {item.quantity} • {item.selectedColor || 'N/A'} • {item.selectedSize || 'N/A'}</p>
                                             </div>
                                             <p className="font-bold text-gray-900 text-sm">${(item.price * item.quantity).toLocaleString()}</p>
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             </div>
@@ -342,8 +342,8 @@ export default function MyOrdersPage() {
                                         >
                                             <Star
                                                 className={`w-8 h-8 ${star <= reviewRating
-                                                        ? "fill-yellow-400 text-yellow-400"
-                                                        : "text-gray-300"
+                                                    ? "fill-yellow-400 text-yellow-400"
+                                                    : "text-gray-300"
                                                     }`}
                                             />
                                         </button>

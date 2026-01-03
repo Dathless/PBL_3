@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import { Link } from "react-router-dom"
 import { orderApi, OrderDetail } from "@/lib/api"
 import { Eye, X } from "lucide-react"
 import { formatDate } from "@/lib/utils"
@@ -156,7 +157,9 @@ export default function Orders() {
                       {selectedOrder.items.map((item: any, idx) => (
                         <tr key={idx}>
                           <td className="px-4 py-3">
-                            <p className="font-medium text-slate-900">{item.productName}</p>
+                            <Link to={`/product/${item.productId}`} className="font-medium text-cyan-600 hover:underline">
+                              {item.productName}
+                            </Link>
                             {(item.selectedColor || item.selectedSize) && (
                               <p className="text-[10px] text-slate-500 mt-0.5">
                                 {item.selectedColor && `Color: ${item.selectedColor}`}

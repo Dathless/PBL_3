@@ -13,6 +13,8 @@ interface Product {
   image: string
   price: number
   originalPrice: number
+  stock: number
+  status: string
 }
 
 interface TimeLeft {
@@ -62,6 +64,8 @@ export function DealsOfDay() {
           image: p.images && p.images.length > 0 ? p.images[0].imageUrl : "/placeholder.svg",
           price: Number(p.price) * (1 - Number(p.discount) / 100), // Calculate discounted price
           originalPrice: Number(p.price), // Original price before discount
+          stock: Number(p.stock) || 0,
+          status: p.status || "AVAILABLE",
         }))
         console.log("Discounted products for TODAY'S DEALS: ", productList)
 
@@ -185,15 +189,25 @@ export function DealsOfDay() {
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
+                  {(product.stock <= 0 || product.status === 'OUT_OF_STOCK') && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        Sold Out
+                      </span>
+                    </div>
+                  )}
                 </div>
               </Link>
               <div className="p-3">
                 <Link to={`/product/${product.id}`}>
                   <h3 className="font-bold text-sm text-gray-900 line-clamp-2 hover:text-cyan-600 transition">{product.name}</h3>
                 </Link>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-red-600 font-bold text-sm">${Number(product.price).toFixed(2)}</span>
-                  <span className="text-gray-400 line-through text-xs">${Number(product.originalPrice).toFixed(2)}</span>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-600 font-bold text-sm">${Number(product.price).toFixed(2)}</span>
+                    <span className="text-gray-400 line-through text-xs">${Number(product.originalPrice).toFixed(2)}</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500 font-medium">Stock: {product.stock}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   <button
@@ -206,9 +220,13 @@ export function DealsOfDay() {
                       })
                       navigate(`/buy-now?id=${product.id}`)
                     }}
-                    className="w-full bg-cyan-500 text-white py-1.5 rounded-full font-bold text-xs hover:bg-cyan-600 transition text-center"
+                    disabled={product.stock <= 0 || product.status === 'OUT_OF_STOCK'}
+                    className={`w-full py-1.5 rounded-full font-bold text-xs transition text-center ${product.stock <= 0 || product.status === 'OUT_OF_STOCK'
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-cyan-500 text-white hover:bg-cyan-600"
+                      }`}
                   >
-                    BUY NOW
+                    {product.stock <= 0 || product.status === 'OUT_OF_STOCK' ? "OUT" : "BUY NOW"}
                   </button>
                   <button
                     onClick={(e) => {
@@ -216,10 +234,14 @@ export function DealsOfDay() {
                       setSelectedProduct(product)
                       setIsModalOpen(true)
                     }}
-                    className="w-full border border-blue-500 text-blue-600 py-1.5 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                    disabled={product.stock <= 0 || product.status === 'OUT_OF_STOCK'}
+                    className={`w-full py-1.5 rounded-full font-bold text-xs transition flex items-center justify-center gap-1 ${product.stock <= 0 || product.status === 'OUT_OF_STOCK'
+                      ? "border border-gray-300 text-gray-400 cursor-not-allowed"
+                      : "border border-blue-500 text-blue-600 hover:bg-blue-50"
+                      }`}
                   >
                     <ShoppingCart className="w-3 h-3" />
-                    ADD
+                    {product.stock <= 0 || product.status === 'OUT_OF_STOCK' ? "SOLD" : "ADD"}
                   </button>
                 </div>
               </div>

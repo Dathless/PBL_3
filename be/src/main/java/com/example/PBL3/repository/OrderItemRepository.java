@@ -21,7 +21,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 			"JOIN FETCH o.customer c " +
 			"JOIN FETCH oi.product p " +
 			"JOIN FETCH p.seller s " +
-			"WHERE s.id = :sellerId")
+			"WHERE s.id = :sellerId " +
+			"ORDER BY o.orderDate DESC")
 	List<OrderItem> findBySellerId(@Param("sellerId") UUID sellerId);
 
 	// Analytics
@@ -76,7 +77,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 			"JOIN FETCH oi.order o " +
 			"WHERE p.seller.id = :sellerId " +
 			"AND o.orderDate BETWEEN :start AND :end " +
-			"AND o.status = 'DELIVERED'")
+			"AND o.status = 'DELIVERED' " +
+			"ORDER BY o.orderDate DESC")
 	List<OrderItem> findCompletedOrderItemsInPeriod(@Param("sellerId") UUID sellerId,
 			@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
@@ -84,7 +86,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 			"JOIN FETCH oi.product p " +
 			"JOIN FETCH oi.order o " +
 			"WHERE p.seller.id = :sellerId " +
-			"AND o.orderDate BETWEEN :start AND :end")
+			"AND o.orderDate BETWEEN :start AND :end " +
+			"ORDER BY o.orderDate DESC")
 	List<OrderItem> findOrderItemsInPeriod(@Param("sellerId") UUID sellerId, @Param("start") LocalDateTime start,
 			@Param("end") LocalDateTime end);
 }

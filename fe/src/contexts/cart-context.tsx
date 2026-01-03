@@ -14,6 +14,7 @@ export interface CartItem {
   color?: string
   size?: string
   cartItemId?: string // Backend cart item ID
+  stock?: number
 }
 
 export type Promotion = {
@@ -101,6 +102,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 image: imageUrl,
                 color: item.selectedColor || undefined,
                 size: item.selectedSize || undefined,
+                stock: 0, // Placeholder, will be updated below
               }
             } catch (error) {
               console.error("Error loading product:", error)
@@ -109,7 +111,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           })
         )
 
-        setCartItems(itemsWithDetails.filter((item): item is CartItem => item !== null))
+        const itemsWithStock = await Promise.all(
+          itemsWithDetails.filter((item): item is CartItem => item !== null).map(async (item) => {
+            try {
+              const stockResponse = await productApi.getVariantStock(item.productId, item.color, item.size)
+              return { ...item, stock: stockResponse.stock }
+            } catch (error) {
+              console.error("Error fetching variant stock for cart item:", error)
+              return { ...item, stock: 0 }
+            }
+          })
+        )
+
+        setCartItems(itemsWithStock)
       } catch (error: any) {
         // Cart doesn't exist, create one
         if (error.message?.includes("not found") || error.message?.includes("404")) {
@@ -138,6 +152,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, user?.id])
 
   const addToCart: CartContextType["addToCart"] = async (item) => {
+    // Verify stock before adding
+    try {
+      const stockResponse = await productApi.getVariantStock(item.productId, item.color, item.size)
+      const availableStock = stockResponse.stock
+
+      const existingItem = cartItems.find(
+        (i) => i.productId === item.productId && i.color === item.color && i.size === item.size
+      )
+      const currentQuantity = existingItem ? existingItem.quantity : 0
+      const requestedQuantity = item.quantity || 1
+
+      if (currentQuantity + requestedQuantity > availableStock) {
+        throw new Error(`Insufficient stock. Only ${availableStock} available and you already have ${currentQuantity} in cart.`)
+      }
+    } catch (error: any) {
+      if (error.message?.includes("Insufficient stock")) throw error
+      console.error("Error checking stock during addToCart:", error)
+    }
+
     if (!user?.id || !cartId) {
       // Create cart if it doesn't exist
       if (user?.id) {
@@ -196,6 +229,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const cartItem = cartItems.find((item) => item.cartItemId === cartItemId)
       if (!cartItem) return
+
+      // Verify stock before updating
+      if (quantity > (cartItem.stock ?? 0)) {
+        throw new Error(`Only ${cartItem.stock ?? 0} items available in stock.`)
+      }
 
       await cartApi.updateItem(cartId, cartItemId, {
         quantity,

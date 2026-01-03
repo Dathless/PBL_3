@@ -124,6 +124,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.getDiscountedProducts());
     }
 
+    @PostMapping("/sync-stock-all")
+    public ResponseEntity<String> syncAllStock() {
+        productService.synchronizeAllStock();
+        return ResponseEntity.ok("All product stocks have been synchronized with their variants.");
+    }
+
     @GetMapping("/top-selling")
     public ResponseEntity<List<ProductDTO>> getTopSellingProducts(
             @RequestParam(defaultValue = "5") int limit) {

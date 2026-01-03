@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const slides = [
@@ -30,6 +30,13 @@ export function HeroCarousel() {
   const next = () => setCurrent((current + 1) % slides.length)
   const prev = () => setCurrent((current - 1 + slides.length) % slides.length)
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % slides.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [])
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="relative bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-2xl overflow-hidden h-52 flex items-center">
@@ -38,27 +45,34 @@ export function HeroCarousel() {
           <ChevronLeft className="w-6 h-6 text-gray-800" />
         </button>
 
-        {/* Content */}
-        <div className="w-full px-12 z-5">
-          <p className="text-white text-sm font-medium mb-2">{slides[current].description}</p>
-          <h2 className="text-white text-4xl font-bold mb-1">{slides[current].title}</h2>
-          <p className="text-white text-lg font-bold mb-4">{slides[current].subtitle}</p>
-          <div className="flex gap-1">
-            {slides.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1 rounded-full transition ${i === current ? "w-6 bg-white" : "w-2 bg-white/50"}`}
+        {/* Slider Container */}
+        <div
+          className="flex transition-transform duration-700 ease-in-out h-full"
+          style={{ transform: `translateX(-${current * 100}%)` }}
+        >
+          {slides.map((slide, index) => (
+            <div key={index} className="min-w-full h-full flex items-center relative px-12">
+              <div className="w-full z-5">
+                <p className="text-white text-sm font-medium mb-2">{slide.description}</p>
+                <h2 className="text-white text-4xl font-bold mb-1">{slide.title}</h2>
+                <p className="text-white text-lg font-bold mb-4">{slide.subtitle}</p>
+                <div className="flex gap-1 absolute bottom-8 left-12">
+                  {slides.map((_, i) => (
+                    <div
+                      key={i}
+                      className={`h-1 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-white" : "w-2 bg-white/50"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <img
+                src={slide.image || "/placeholder.svg"}
+                alt={slide.title}
+                className="absolute right-8 h-48 w-auto object-contain"
               />
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-
-        {/* Image */}
-        <img
-          src={slides[current].image || "/placeholder.svg"}
-          alt={slides[current].title}
-          className="absolute right-8 h-48 w-auto object-contain"
-        />
 
         {/* Right Button */}
         <button onClick={next} className="absolute right-4 z-10 bg-white rounded-full p-2 hover:bg-gray-100 transition">

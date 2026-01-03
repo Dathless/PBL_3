@@ -34,7 +34,7 @@ public class Review {
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
-    private boolean approved = false;
+    private boolean approved = true;
 
     // Getters and Setters
     public UUID getId() {
@@ -90,7 +90,7 @@ public class Review {
     }
 
     public void setApproved(boolean approved) {
-        this.approved = approved;
+        this.approved = true; // Automatically approved per requirements
     }
 
     @PrePersist

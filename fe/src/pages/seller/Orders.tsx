@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { useAuth } from "@/contexts/auth-context"
 import {
   Search,
@@ -252,7 +253,11 @@ export default function OrdersPage() {
                     <tr key={order.orderId} className="border-b border-gray-100 hover:bg-gray-50 transition">
                       <td className="py-4 px-6 text-sm font-semibold">#{order.orderId}</td>
                       <td className="py-4 px-6 text-sm">{order.customerName}</td>
-                      <td className="py-4 px-6 text-sm">{order.productName}</td>
+                      <td className="py-4 px-6 text-sm">
+                        <Link to={`/product/${order.productId}`} className="text-cyan-600 hover:underline font-medium">
+                          {order.productName}
+                        </Link>
+                      </td>
                       <td className="py-4 px-6 text-sm">{order.quantity}</td>
                       <td className="py-4 px-6 text-sm font-semibold">${(order.price * order.quantity).toLocaleString()}</td>
                       <td className="py-4 px-6">
@@ -408,7 +413,11 @@ export default function OrdersPage() {
                         <tbody>
                           {selectedOrderDetail.items.map((it, idx) => (
                             <tr key={idx} className="border-t">
-                              <td className="py-2 px-3">{it.productName}</td>
+                              <td className="py-2 px-3">
+                                <Link to={`/product/${it.productId}`} className="text-cyan-600 hover:underline">
+                                  {it.productName}
+                                </Link>
+                              </td>
                               <td className="py-2 px-3">{it.quantity}</td>
                               <td className="py-2 px-3">${it.price.toLocaleString()}</td>
                               <td className="py-2 px-3">${(it.price * it.quantity).toLocaleString()}</td>

@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X } from "lucide-react"
+import { X, Loader2 } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { LoginModal } from "@/components/login-modal"
+import { productApi, ApiProduct } from "@/lib/api"
 
 interface Product {
   id: string | number
@@ -22,78 +23,76 @@ interface AddToCartModalProps {
   product: Product | null
 }
 
-// Product database để lấy colors và sizes
-const productsDatabase: Record<string, {
-  colors: string[]
-  sizes: string[]
-}> = {
-  "1": {
-    colors: ["white", "black", "gray", "navy"],
-    sizes: ["40", "41", "42", "43", "44", "45"],
-  },
-  "2": {
-    colors: ["white", "black", "red", "blue"],
-    sizes: ["40", "41", "42", "43", "44", "45", "46"],
-  },
-  "3": {
-    colors: ["gold", "silver", "black"],
-    sizes: ["S", "M", "L"],
-  },
-  "4": {
-    colors: ["white", "beige", "black", "navy"],
-    sizes: ["S", "M", "L", "XL"],
-  },
-  "5": {
-    colors: ["gold", "silver", "rose gold"],
-    sizes: ["40mm"],
-  },
-  "6": {
-    colors: ["black", "brown", "tan"],
-    sizes: ["40", "41", "42", "43", "44"],
-  },
-  "7": {
-    colors: ["black", "brown", "beige"],
-    sizes: ["One Size"],
-  },
-  "8": {
-    colors: ["black", "brown", "tan"],
-    sizes: ["One Size"],
-  },
-  "9": {
-    colors: ["black", "brown", "beige"],
-    sizes: ["One Size"],
-  },
-  "10": {
-    colors: ["black", "brown", "tan"],
-    sizes: ["One Size"],
-  },
-}
-
 export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps) {
   const [selectedColor, setSelectedColor] = useState<string>("")
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [fullProduct, setFullProduct] = useState<ApiProduct | null>(null)
+  const [availableColors, setAvailableColors] = useState<string[]>([])
+  const [availableSizes, setAvailableSizes] = useState<string[]>([])
+  const [currentStock, setCurrentStock] = useState<number>(0)
+
   const { isAuthenticated, user } = useAuth()
   const { addToCart } = useCart()
   const { toast } = useToast()
 
-  const productId = product?.id?.toString() || ""
-  const productData = productsDatabase[productId] || {
-    colors: product?.colors || ["default"],
-    sizes: product?.sizes || ["One Size"],
-  }
-
+  // Fetch full product details including variants when modal opens
   useEffect(() => {
-    if (isOpen && product) {
-      // Set default selections
-      if (productData.colors.length > 0) {
-        setSelectedColor(productData.colors[0])
-      }
-      if (productData.sizes.length > 0) {
-        setSelectedSize(productData.sizes[0])
+    const fetchDetails = async () => {
+      if (!isOpen || !product) return
+
+      try {
+        setLoading(true)
+        const detailedProduct = await productApi.getById(product.id.toString())
+        setFullProduct(detailedProduct)
+
+        // Process variants to get unique colors and sizes
+        if (detailedProduct.variants && detailedProduct.variants.length > 0) {
+          const colors = Array.from(new Set(detailedProduct.variants.map(v => v.color).filter(Boolean)))
+          const sizes = Array.from(new Set(detailedProduct.variants.map(v => v.size).filter(Boolean)))
+
+          setAvailableColors(colors.length > 0 ? colors : ["default"])
+          setAvailableSizes(sizes.length > 0 ? sizes : ["One Size"])
+
+          // Initial selection
+          const firstColor = colors.length > 0 ? colors[0] : "default"
+          const firstSize = sizes.length > 0 ? sizes[0] : "One Size"
+          setSelectedColor(firstColor)
+          setSelectedSize(firstSize)
+        } else {
+          // Fallback for products without variants
+          setAvailableColors([detailedProduct.color || "default"])
+          setAvailableSizes([detailedProduct.size || "One Size"])
+          setSelectedColor(detailedProduct.color || "default")
+          setSelectedSize(detailedProduct.size || "One Size")
+          setCurrentStock(detailedProduct.stock)
+        }
+      } catch (error) {
+        console.error("Error fetching product details for modal:", error)
+        toast({ title: "Error", description: "Could not load product details.", variant: "destructive" })
+      } finally {
+        setLoading(false)
       }
     }
-  }, [isOpen, product, productData])
+
+    fetchDetails()
+  }, [isOpen, product?.id, toast])
+
+  // Update current stock based on selection
+  useEffect(() => {
+    if (!fullProduct) return
+
+    if (fullProduct.variants && fullProduct.variants.length > 0) {
+      const variant = fullProduct.variants.find(v =>
+        (v.color === selectedColor || (!v.color && selectedColor === "default")) &&
+        (v.size === selectedSize || (!v.size && selectedSize === "One Size"))
+      )
+      setCurrentStock(variant ? variant.stock : 0)
+    } else {
+      setCurrentStock(fullProduct.stock)
+    }
+  }, [selectedColor, selectedSize, fullProduct])
 
   const handleAddToCart = () => {
     if (user?.role === "seller") {
@@ -105,12 +104,12 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
       return
     }
 
-    if (!product) return
+    if (!product || !fullProduct) return
 
-    if (!selectedColor || !selectedSize) {
+    if (currentStock <= 0) {
       toast({
-        title: "Please choose options",
-        description: "Please select color and size.",
+        title: "Out of stock",
+        description: "The selected combination is currently unavailable.",
         variant: "destructive",
       })
       return
@@ -122,16 +121,21 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
       name: product.name,
       price: product.price,
       image: product.image,
-      color: selectedColor,
-      size: selectedSize,
+      color: selectedColor === "default" ? undefined : selectedColor,
+      size: selectedSize === "One Size" ? undefined : selectedSize,
+    }).then(() => {
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart.`,
+      })
+      onClose()
+    }).catch(err => {
+      toast({
+        title: "Cannot add to cart",
+        description: err.message,
+        variant: "destructive"
+      })
     })
-
-    toast({
-      title: "Added to cart",
-      description: `${product.name} has been added to your cart.`,
-    })
-
-    onClose()
   }
 
   if (!isOpen || !product) return null
@@ -145,9 +149,16 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
       >
         {/* Modal */}
         <div
-          className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto"
+          className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto relative"
           onClick={(e) => e.stopPropagation()}
         >
+          {loading && (
+            <div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-lg">
+              <Loader2 className="w-8 h-8 animate-spin text-cyan-600 mb-2" />
+              <p className="text-sm font-medium text-gray-500">Updating options...</p>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b">
             <h2 className="text-lg font-bold">Add to Cart</h2>
@@ -166,26 +177,31 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
               <img
                 src={product.image || "/placeholder.svg"}
                 alt={product.name}
-                className="w-24 h-24 object-cover rounded-lg"
+                className="w-24 h-24 object-cover rounded-lg border border-gray-100"
               />
               <div className="flex-1">
                 <h3 className="font-semibold text-sm mb-1">{product.name}</h3>
-                <p className="text-lg font-bold text-cyan-600">${product.price.toLocaleString()}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-bold text-cyan-600">${product.price.toLocaleString()}</p>
+                </div>
+                <p className={`text-xs font-bold mt-1 ${currentStock > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {currentStock > 0 ? `Available Stock: ${currentStock}` : 'Sold Out'}
+                </p>
               </div>
             </div>
 
             {/* Color Selection */}
-            {productData.colors.length > 0 && (
+            {availableColors.length > 0 && !(availableColors.length === 1 && availableColors[0] === "default") && (
               <div className="mb-6">
                 <label className="block text-sm font-semibold mb-2">
                   Color: <span className="text-gray-500 font-normal">{selectedColor}</span>
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {productData.colors.map((color) => (
+                  {availableColors.map((color) => (
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
-                      className={`px-4 py-2 rounded-lg border-2 transition ${selectedColor === color
+                      className={`px-4 py-2 rounded-lg border-2 transition text-sm ${selectedColor === color
                         ? "border-cyan-600 bg-cyan-50 text-cyan-600 font-semibold"
                         : "border-gray-300 hover:border-gray-400"
                         }`}
@@ -198,17 +214,17 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
             )}
 
             {/* Size Selection */}
-            {productData.sizes.length > 0 && (
+            {availableSizes.length > 0 && !(availableSizes.length === 1 && availableSizes[0] === "One Size") && (
               <div className="mb-6">
                 <label className="block text-sm font-semibold mb-2">
                   Size: <span className="text-gray-500 font-normal">{selectedSize}</span>
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {productData.sizes.map((size) => (
+                  {availableSizes.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 rounded-lg border-2 transition ${selectedSize === size
+                      className={`px-4 py-2 rounded-lg border-2 transition text-sm ${selectedSize === size
                         ? "border-cyan-600 bg-cyan-50 text-cyan-600 font-semibold"
                         : "border-gray-300 hover:border-gray-400"
                         }`}
@@ -223,9 +239,13 @@ export function AddToCartModal({ isOpen, onClose, product }: AddToCartModalProps
             {/* Add to Cart Button */}
             <button
               onClick={handleAddToCart}
-              className="w-full bg-cyan-600 text-white py-3 rounded-lg font-semibold hover:bg-cyan-700 transition"
+              disabled={currentStock <= 0 || loading}
+              className={`w-full py-4 rounded-xl font-bold transition-all shadow-md ${currentStock <= 0 || loading
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
+                : "bg-cyan-600 text-white hover:bg-cyan-700 active:scale-95"
+                }`}
             >
-              Add to Cart
+              {loading ? "Please wait..." : currentStock <= 0 ? "Out of Stock" : "Add to Cart"}
             </button>
           </div>
         </div>

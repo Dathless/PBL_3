@@ -15,6 +15,8 @@ interface Product {
   price: number
   originalPrice: number
   discount: number
+  stock: number
+  status: string
 }
 
 interface TimeLeft {
@@ -53,6 +55,8 @@ export default function OffersPage() {
           price: Number(p.price) * (1 - Number(p.discount) / 100), // Calculate discounted price
           originalPrice: Number(p.price), // Original price
           discount: Number(p.discount), // Use actual discount from backend
+          stock: Number(p.stock) || 0,
+          status: p.status || "AVAILABLE",
         }))
 
         console.log("Discounted Products for Flash Sale:", productList);
@@ -175,6 +179,13 @@ export default function OffersPage() {
                       className="w-full h-full object-cover hover:scale-105 transition"
                     />
                   </Link>
+                  {(product.stock <= 0 || product.status === 'OUT_OF_STOCK') && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <span className="bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                        Sold Out
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
                   <Link to={`/product/${product.id}`}>
@@ -182,23 +193,34 @@ export default function OffersPage() {
                       {product.name}
                     </h3>
                   </Link>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-red-600 font-bold text-lg">${product.price.toLocaleString()}</span>
-                    <span className="text-gray-400 line-through text-sm">${product.originalPrice.toLocaleString()}</span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-600 font-bold text-lg">${product.price.toLocaleString()}</span>
+                      <span className="text-gray-400 line-through text-sm">${product.originalPrice.toLocaleString()}</span>
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-medium">Stock: {product.stock}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => handleBuy(product)}
-                      className="w-full bg-cyan-500 text-white py-2 rounded-full font-bold text-xs hover:bg-cyan-600 transition text-center"
+                      disabled={product.stock <= 0 || product.status === 'OUT_OF_STOCK'}
+                      className={`w-full py-2 rounded-full font-bold text-xs transition text-center ${product.stock <= 0 || product.status === 'OUT_OF_STOCK'
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-cyan-500 text-white hover:bg-cyan-600"
+                        }`}
                     >
-                      BUY NOW
+                      {product.stock <= 0 || product.status === 'OUT_OF_STOCK' ? "OUT" : "BUY NOW"}
                     </button>
                     <button
                       onClick={() => handleAddToCart(product)}
-                      className="w-full border border-blue-500 text-blue-600 py-2 rounded-full font-bold text-xs hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                      disabled={product.stock <= 0 || product.status === 'OUT_OF_STOCK'}
+                      className={`w-full py-2 rounded-full font-bold text-xs transition flex items-center justify-center gap-1 ${product.stock <= 0 || product.status === 'OUT_OF_STOCK'
+                        ? "border border-gray-300 text-gray-400 cursor-not-allowed"
+                        : "border border-blue-500 text-blue-600 hover:bg-blue-50"
+                        }`}
                     >
                       <ShoppingCart className="w-3 h-3" />
-                      ADD
+                      {product.stock <= 0 || product.status === 'OUT_OF_STOCK' ? "SOLD" : "ADD"}
                     </button>
                   </div>
                 </div>

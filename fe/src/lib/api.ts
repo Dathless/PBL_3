@@ -170,6 +170,7 @@ export interface ApiProduct {
   variants?: Array<{
     id: string;
     size: string;
+    color: string;
     stock: number;
   }>;
   images: Array<{ id: number; imageUrl: string; altText?: string }>
@@ -289,6 +290,14 @@ export const productApi = {
 
   getTopSelling: async (limit: number = 5) => {
     return apiRequest<ApiProduct[]>(`/products/top-selling?limit=${limit}`)
+  },
+  search: async (name?: string, minPrice?: number, maxPrice?: number) => {
+    const params = new URLSearchParams()
+    if (name) params.append("name", name)
+    if (minPrice) params.append("minPrice", minPrice.toString())
+    if (maxPrice) params.append("maxPrice", maxPrice.toString())
+    const query = params.toString() ? `?${params.toString()}` : ""
+    return apiRequest<ApiProduct[]>(`/products/search${query}`)
   },
 }
 

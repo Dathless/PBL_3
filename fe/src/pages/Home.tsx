@@ -9,6 +9,7 @@ import { DealsOfDay } from "@/components/deals-of-day"
 import { Categories } from "@/components/categories"
 import { FashionBrands } from "@/components/fashion-brands"
 import { FrequentlyBought } from "@/components/frequently-bought"
+import { NewArrivals } from "@/components/new-arrivals"
 import { ActivePromotions } from "@/components/active-promotions"
 import { LiteFooter } from "@/components/lite-footer"
 import { useAuth } from "@/contexts/auth-context"
@@ -48,6 +49,7 @@ export default function Home() {
       <InfoCards />
       <ShopByBrands />
       <DealsOfDay />
+      <NewArrivals />
       <Categories />
       <FashionBrands />
       <FrequentlyBought />

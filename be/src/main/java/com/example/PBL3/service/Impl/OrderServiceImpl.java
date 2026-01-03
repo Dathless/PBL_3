@@ -23,6 +23,9 @@ import com.example.PBL3.util.MapperUtil;
 import com.example.PBL3.model.status.OrderStatus;
 import com.example.PBL3.model.status.NotificationType;
 import com.example.PBL3.service.NotificationService;
+import com.example.PBL3.repository.ProductVariantRepository;
+import com.example.PBL3.model.ProductVariant;
+import com.example.PBL3.model.status.ProductStatus;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,16 +47,19 @@ public class OrderServiceImpl implements OrderService {
 	private final UserRepository userRepository;
 	private final ProductRepository productRepository;
 	private final OrderItemRepository orderItemRepository;
+	private final ProductVariantRepository productVariantRepository;
 	private final MapperUtil mapperUtil;
 	private final NotificationService notificationService;
 
 	public OrderServiceImpl(OrderRepository orderRepository, UserRepository userRepository,
-			ProductRepository productRepository, OrderItemRepository orderItemRepository, MapperUtil mapperUtil,
+			ProductRepository productRepository, OrderItemRepository orderItemRepository,
+			ProductVariantRepository productVariantRepository, MapperUtil mapperUtil,
 			NotificationService notificationService) {
 		this.orderRepository = orderRepository;
 		this.userRepository = userRepository;
 		this.productRepository = productRepository;
 		this.orderItemRepository = orderItemRepository;
+		this.productVariantRepository = productVariantRepository;
 		this.mapperUtil = mapperUtil;
 		this.notificationService = notificationService;
 	}
@@ -98,6 +104,66 @@ public class OrderServiceImpl implements OrderService {
 
 			// mapping entity <-> dto and add to order
 			Order order = mapperUtil.toOrder(dto, customer, products);
+
+			// Stock Management
+			for (com.example.PBL3.model.OrderItem item : order.getItems()) {
+				Product product = item.getProduct();
+				int quantityToSubtract = item.getQuantity();
+
+				// Update ProductVariant stock if size/color selected
+				String selectedSize = item.getSelectedSize();
+				String selectedColor = item.getSelectedColor();
+
+				// Normalize synthetic defaults from frontend
+				String finalColor = (selectedColor == null || selectedColor.isEmpty()
+						|| "default".equalsIgnoreCase(selectedColor)) ? null : selectedColor;
+				String finalSize = (selectedSize == null || selectedSize.isEmpty()
+						|| "One Size".equalsIgnoreCase(selectedSize) || "Onesize".equalsIgnoreCase(selectedSize)) ? null
+								: selectedSize;
+
+				if (finalSize != null || finalColor != null) {
+					java.util.Optional<ProductVariant> variantOpt = java.util.Optional.empty();
+
+					if (finalColor != null && finalSize != null) {
+						variantOpt = productVariantRepository.findByProductAndColorAndSize(product, finalColor,
+								finalSize);
+						// Fallback if exact match fails
+						if (variantOpt.isEmpty()) {
+							variantOpt = productVariantRepository.findByProductAndSize(product, finalSize);
+						}
+					} else if (finalSize != null) {
+						variantOpt = productVariantRepository.findByProductAndSize(product, finalSize);
+					}
+
+					if (variantOpt.isPresent()) {
+						ProductVariant variant = variantOpt.get();
+						log.info("Updating stock for variant: {} {} (Stock: {} -> {})",
+								variant.getColor(), variant.getSize(), variant.getStock(),
+								variant.getStock() - quantityToSubtract);
+						if (variant.getStock() < quantityToSubtract) {
+							throw new RuntimeException("Insufficient stock for variant selection");
+						}
+						variant.setStock(variant.getStock() - quantityToSubtract);
+						productVariantRepository.save(variant);
+					} else {
+						log.warn("No variant found for Color: {} and Size: {}. Skipping variant stock update.",
+								finalColor, finalSize);
+					}
+				}
+
+				// Update main Product stock
+				if (product.getStock() < quantityToSubtract) {
+					throw new RuntimeException("Insufficient stock for product " + product.getName());
+				}
+				product.setStock(product.getStock() - quantityToSubtract);
+
+				// Update status if sold out
+				if (product.getStock() <= 0) {
+					product.setStatus(ProductStatus.OUT_OF_STOCK);
+				}
+
+				productRepository.save(product);
+			}
 
 			orderRepository.save(order);
 
@@ -170,6 +236,11 @@ public class OrderServiceImpl implements OrderService {
 			}
 		}
 
+		// If order is canceled, return stock
+		if (status == OrderStatus.CANCELED && order.getStatus() != OrderStatus.CANCELED) {
+			returnStock(order);
+		}
+
 		order.setStatus(status);
 		orderRepository.save(order);
 
@@ -197,6 +268,7 @@ public class OrderServiceImpl implements OrderService {
 
 		if (order.getStatus() == OrderStatus.PENDING_CONFIRMATION) {
 			order.setStatus(OrderStatus.CANCELED);
+			returnStock(order);
 		} else if (order.getStatus() == OrderStatus.WAITING_FOR_PICKUP) {
 			order.setStatus(OrderStatus.CANCEL_REQUESTED);
 		} else {
@@ -205,6 +277,55 @@ public class OrderServiceImpl implements OrderService {
 
 		orderRepository.save(order);
 		return mapperUtil.toOrderDTO(order);
+	}
+
+	private void returnStock(Order order) {
+		log.info("Returning stock for canceled order: {}", order.getId());
+		for (com.example.PBL3.model.OrderItem item : order.getItems()) {
+			Product product = item.getProduct();
+			int quantityToAdd = item.getQuantity();
+
+			// Return ProductVariant stock if size/color selected
+			String selectedSize = item.getSelectedSize();
+			String selectedColor = item.getSelectedColor();
+
+			// Normalize synthetic defaults from frontend
+			String finalColor = (selectedColor == null || selectedColor.isEmpty()
+					|| "default".equalsIgnoreCase(selectedColor)) ? null
+							: selectedColor;
+			String finalSize = (selectedSize == null || selectedSize.isEmpty()
+					|| "One Size".equalsIgnoreCase(selectedSize) || "Onesize".equalsIgnoreCase(selectedSize)) ? null
+							: selectedSize;
+
+			if (finalSize != null || finalColor != null) {
+				java.util.Optional<ProductVariant> variantOpt = java.util.Optional.empty();
+				if (finalColor != null && finalSize != null) {
+					variantOpt = productVariantRepository.findByProductAndColorAndSize(product, finalColor, finalSize);
+					if (variantOpt.isEmpty()) {
+						variantOpt = productVariantRepository.findByProductAndSize(product, finalSize);
+					}
+				} else if (finalSize != null) {
+					variantOpt = productVariantRepository.findByProductAndSize(product, finalSize);
+				}
+
+				if (variantOpt.isPresent()) {
+					ProductVariant variant = variantOpt.get();
+					variant.setStock(variant.getStock() + quantityToAdd);
+					productVariantRepository.save(variant);
+					log.info("Returned stock for variant: {} {} (+{})", variant.getColor(), variant.getSize(),
+							quantityToAdd);
+				}
+			}
+
+			// Return main Product stock
+			product.setStock(product.getStock() + quantityToAdd);
+			// Also restore status if it was OUT_OF_STOCK
+			if (product.getStatus() == ProductStatus.OUT_OF_STOCK && product.getStock() > 0) {
+				product.setStatus(ProductStatus.AVAILABLE);
+			}
+			productRepository.save(product);
+			log.info("Returned stock for product: {} (+{})", product.getName(), quantityToAdd);
+		}
 	}
 
 }

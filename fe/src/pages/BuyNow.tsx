@@ -1,5 +1,5 @@
 import type React from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { useEffect, useState } from "react"
 
 import { TopBanner } from "@/components/top-banner"
@@ -48,14 +48,21 @@ export default function BuyNowPage() {
 
   // Get product info - only need ID from URL
   const productId = searchParams.get("id")
+  const urlQuantity = parseInt(searchParams.get("quantity") || "1")
+  const urlColor = searchParams.get("color")
+  const urlSize = searchParams.get("size")
+
   const product = productId ? getBuyNowProduct(productId) : null
   const productName = product?.name || "Product"
   const productPrice = product?.price || 0
   const productImage = product?.image || "/placeholder.svg"
+  const quantity = product?.quantity || urlQuantity
+  const selectedColor = product?.color || urlColor
+  const selectedSize = product?.size || urlSize
 
   const shipping = 5
   const tax = 0
-  const total = Math.round((productPrice + shipping + tax) * 100) / 100
+  const total = Math.round((productPrice * quantity + shipping + tax) * 100) / 100
 
   // Check authentication and product
   useEffect(() => {
@@ -204,10 +211,10 @@ export default function BuyNowPage() {
         paymentMethod,
         items: [{
           productId,
-          quantity: 1,
+          quantity,
           price: productPrice,
-          selectedColor: null,
-          selectedSize: null,
+          selectedColor,
+          selectedSize,
         }],
       })
 
@@ -585,21 +592,26 @@ export default function BuyNowPage() {
           <div className="lg:col-span-1">
             <div className="bg-gray-50 rounded-lg p-6 sticky top-24">
               <h2 className="text-xl font-bold mb-6">ORDER SUMMARY</h2>
-              <div className="flex gap-4 mb-6 pb-6 border-b border-gray-300">
+              <Link to={`/product/${productId}`} className="flex gap-4 mb-6 pb-6 border-b border-gray-300 group hover:opacity-80 transition">
                 <img
                   src={productImage}
                   alt={productName}
-                  className="w-20 h-20 object-cover rounded"
+                  className="w-20 h-20 object-cover rounded group-hover:ring-2 ring-cyan-500 transition"
                 />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-sm text-gray-800">{productName}</h3>
-                  <p className="text-red-600 font-bold mt-2">${productPrice.toFixed(2)}</p>
+                  <h3 className="font-semibold text-sm text-gray-800 group-hover:text-cyan-600 transition">{productName}</h3>
+                  <div className="flex flex-col gap-1 mt-1">
+                    {selectedColor && <p className="text-xs text-gray-500">Color: {selectedColor}</p>}
+                    {selectedSize && <p className="text-xs text-gray-500">Size: {selectedSize}</p>}
+                    <p className="text-xs text-gray-500">Quantity: {quantity}</p>
+                  </div>
+                  <p className="text-red-600 font-bold mt-2">${(productPrice * quantity).toFixed(2)}</p>
                 </div>
-              </div>
+              </Link>
               <div className="space-y-2 mb-6 pb-6 border-b border-gray-300">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${productPrice.toFixed(2)}</span>
+                  <span>${(productPrice * quantity).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>

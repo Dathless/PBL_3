@@ -5,6 +5,7 @@ import java.util.UUID;
 public class ProductVariantDTO {
     private UUID id;
     private String size;
+    private String color;
     private int stock;
 
     public UUID getId() {
@@ -21,6 +22,14 @@ public class ProductVariantDTO {
 
     public void setSize(String size) {
         this.size = size;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 
     public int getStock() {

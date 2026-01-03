@@ -8,6 +8,8 @@ import { useCart } from "@/contexts/cart-context"
 import { useToast } from "@/hooks/use-toast"
 import { useNotifications } from "@/contexts/notification-context"
 import { NotificationPopover } from "./NotificationPopover"
+import { productApi, ApiProduct } from "@/lib/api"
+import { useEffect } from "react"
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -19,6 +21,8 @@ export function Header() {
   const { getItemCount } = useCart()
   const { toast } = useToast()
   const { unreadCount } = useNotifications()
+  const [dynamicProducts, setDynamicProducts] = useState<ApiProduct[]>([])
+  const [isSearching, setIsSearching] = useState(false)
 
   const cartItemCount = getItemCount()
 
@@ -32,17 +36,29 @@ export function Header() {
     navigate("/")
   }
 
-  const products = [
-    { name: "ADIDAS SAMBA OG", id: "1" },
-    { name: "Nike Air Force 1", id: "2" },
-    { name: "Long-sleeved Blouse", id: "3" },
-    { name: "Maxi Size Hobo Bag", id: "4" },
-    { name: "Black Rolex Watch", id: "5" },
-    { name: "Pink Leather Jacket", id: "6" },
-    { name: "Dior Diorshow Shoes", id: "7" },
-  ]
+  // Dynamic search effect with debouncing
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setDynamicProducts([])
+      setShowSearchResults(false)
+      return
+    }
 
-  const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    const timer = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const results = await productApi.search(searchQuery)
+        setDynamicProducts(results)
+        setShowSearchResults(true)
+      } catch (error) {
+        console.error("Search failed:", error)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const navItems = user?.role === "seller"
     ? [
@@ -96,17 +112,43 @@ export function Header() {
                   className="bg-transparent border-0 outline-none px-2 py-1 w-full text-sm"
                 />
               </div>
-              {showSearchResults && filteredProducts.length > 0 && (
-                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 z-50">
-                  {filteredProducts.map((product) => (
-                    <Link
-                      key={product.id}
-                      to={`/product/${product.id}`}
-                      className="block px-4 py-2 hover:bg-gray-100 text-sm text-gray-700 first:rounded-t-lg last:rounded-b-lg"
-                    >
-                      {product.name}
-                    </Link>
-                  ))}
+              {showSearchResults && (
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 z-50 overflow-hidden">
+                  {isSearching ? (
+                    <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                      Searching...
+                    </div>
+                  ) : dynamicProducts.length > 0 ? (
+                    <div className="max-h-80 overflow-y-auto">
+                      {dynamicProducts.map((product) => (
+                        <Link
+                          key={product.id}
+                          to={`/product/${product.id}`}
+                          onClick={() => setShowSearchResults(false)}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition border-b last:border-0 border-gray-100 group"
+                        >
+                          <div className="w-10 h-10 rounded bg-gray-100 overflow-hidden flex-shrink-0">
+                            <img
+                              src={product.images && product.images.length > 0 ? product.images[0].imageUrl : "/placeholder.svg"}
+                              alt={product.name}
+                              className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate group-hover:text-cyan-600 transition">
+                              {product.name}
+                            </p>
+                            <p className="text-xs text-red-600 font-bold">${product.price}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      No products found for "{searchQuery}"
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -205,66 +247,56 @@ export function Header() {
             ))}
 
             <div className="relative group">
-              <button className="text-sm font-medium hover:text-red-600 transition flex items-center gap-1">
+              <button className={`text-sm font-medium hover:text-red-600 transition flex items-center gap-1 ${pathname.startsWith('/category') ? 'text-red-600' : ''}`}>
                 CATEGORIES <span className="text-xs">▼</span>
               </button>
               <div className="hidden group-hover:block absolute top-full left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-max">
-                <Link to="/category/t-shirt" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  T-Shirt
-                </Link>
-                <Link to="/category/jacket" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Jacket
-                </Link>
-                <Link to="/category/pants" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Pants
-                </Link>
-                <Link to="/category/shoes" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Shoes
-                </Link>
-                <Link to="/category/watches" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Watches
-                </Link>
-                <Link to="/category/bag" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Bag
-                </Link>
-                <Link to="/category/accessories" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Accessories
-                </Link>
+                {[
+                  { to: "/category/t-shirt", label: "T-Shirt" },
+                  { to: "/category/jacket", label: "Jacket" },
+                  { to: "/category/pants", label: "Pants" },
+                  { to: "/category/shoes", label: "Shoes" },
+                  { to: "/category/watches", label: "Watches" },
+                  { to: "/category/bag", label: "Bag" },
+                  { to: "/category/accessories", label: "Accessories" },
+                ].map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className={`block px-4 py-2 text-sm hover:bg-gray-100 ${pathname === link.to ? 'font-bold text-cyan-600 bg-gray-50' : 'text-gray-700'}`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
               </div>
             </div>
 
             <div className="relative group">
-              <button className="text-sm font-medium hover:text-red-600 transition flex items-center gap-1">
+              <button className={`text-sm font-medium hover:text-red-600 transition flex items-center gap-1 ${pathname.startsWith('/brand') ? 'text-red-600' : ''}`}>
                 BRANDS <span className="text-xs">▼</span>
               </button>
               <div className="hidden group-hover:block absolute top-full left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-max">
-                <Link to="/brand/zara" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Zara
-                </Link>
-                <Link to="/brand/dg" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  D&G
-                </Link>
-                <Link to="/brand/hm" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  H&M
-                </Link>
-                <Link to="/brand/chanel" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Chanel
-                </Link>
-                <Link to="/brand/prada" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Prada
-                </Link>
-                <Link to="/brand/adidas" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Adidas
-                </Link>
-                <Link to="/brand/nike" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Nike
-                </Link>
-                <Link to="/brand/dior" className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm">
-                  Dior
-                </Link>
+                {[
+                  { to: "/brand/zara", label: "Zara" },
+                  { to: "/brand/dg", label: "D&G" },
+                  { to: "/brand/hm", label: "H&M" },
+                  { to: "/brand/chanel", label: "Chanel" },
+                  { to: "/brand/prada", label: "Prada" },
+                  { to: "/brand/adidas", label: "Adidas" },
+                  { to: "/brand/nike", label: "Nike" },
+                  { to: "/brand/dior", label: "Dior" },
+                ].map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className={`block px-4 py-2 text-sm hover:bg-gray-100 ${pathname === link.to ? 'font-bold text-cyan-600 bg-gray-50' : 'text-gray-700'}`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
                 <Link
                   to="/brands"
-                  className="block px-4 py-2 hover:bg-gray-100 text-gray-700 text-sm font-bold border-t border-gray-200"
+                  className={`block px-4 py-2 text-sm hover:bg-gray-100 border-t border-gray-200 ${pathname === '/brands' ? 'font-bold text-cyan-600 bg-gray-50' : 'text-gray-700'}`}
                 >
                   All Brands
                 </Link>

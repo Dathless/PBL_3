@@ -42,7 +42,7 @@ public class ReviewServiceImpl implements ReviewService {
         review.setRating(reviewDTO.getRating());
         review.setComment(reviewDTO.getComment());
         review.setCreatedAt(LocalDateTime.now());
-        review.setApproved(false); // Requires admin approval by default
+        review.setApproved(true); // Automatically approved per requirements
 
         Review saved = reviewRepo.save(review);
 

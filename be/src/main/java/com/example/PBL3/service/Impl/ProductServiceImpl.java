@@ -67,9 +67,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDTO getById(UUID id) {
         productRepo.incrementViewCount(id);
-        return productRepo.findById(id)
-                .map(mapperUtil::toProductDTO)
+        Product product = productRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found"));
+
+        // Self-healing: Synchronize stock if variants exist
+        synchronizeStock(product);
+
+        return mapperUtil.toProductDTO(product);
     }
 
     @Override
@@ -111,28 +115,20 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
-        // Reset status to PENDING so Admin must re-approve even if it's an existing
-        // product being updated
-        product.setStatus(ProductStatus.PENDING);
+        // Only set to PENDING if it's a new product or not already approved
+        if (product.getStatus() == null
+                || (product.getStatus() != ProductStatus.APPROVED && product.getStatus() != ProductStatus.AVAILABLE)) {
+            product.setStatus(ProductStatus.PENDING);
+        }
 
         // Handle Variant (Size & Stock)
         // If the incoming DTO has a specific size and stock, we upsert that variant
         if (dto.getSize() != null && !dto.getSize().isEmpty()) {
-            final Product finalProduct = product;
             String incomingSize = dto.getSize();
-            // In the current frontend, p.size might be a JSON array string if selected
-            // multiple,
-            // but the user's request implies adding one size at a time or handling specific
-            // stock per size.
-            // If it's a JSON array, we might need to handle multiple, but let's assume the
-            // "Add" button
-            // sends the specific size being added.
+            String incomingColor = dto.getColor();
 
-            // For now, let's just handle the size provided in the DTO as a single unit or
-            // handle multiple if JSON
             List<String> sizesToAdd = new ArrayList<>();
             if (incomingSize.startsWith("[") && incomingSize.endsWith("]")) {
-                // Parse JSON array
                 try {
                     sizesToAdd = new com.fasterxml.jackson.databind.ObjectMapper().readValue(incomingSize,
                             new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {
@@ -145,31 +141,41 @@ public class ProductServiceImpl implements ProductService {
             }
 
             for (String s : sizesToAdd) {
-                com.example.PBL3.model.ProductVariant variant = variantRepo.findByProductAndSize(product, s)
-                        .orElse(new com.example.PBL3.model.ProductVariant());
+                com.example.PBL3.model.ProductVariant variant;
+                if (incomingColor != null && !incomingColor.isEmpty()) {
+                    variant = variantRepo.findByProductAndColorAndSize(product, incomingColor, s)
+                            .orElse(new com.example.PBL3.model.ProductVariant());
+                    variant.setColor(incomingColor);
+                } else {
+                    variant = variantRepo.findByProductAndSize(product, s)
+                            .orElse(new com.example.PBL3.model.ProductVariant());
+                }
+
                 variant.setProduct(product);
                 variant.setSize(s);
-                // If existing, we add to stock or override? Request says "10 đôi size 39, 20
-                // đôi size 38"
-                // Usually adding means increasing or setting. Let's assume setting for
-                // simplicity or increasing if intended.
-                // The user said "thêm lần lượt từng size (thêm 2 lần)", so it might mean adding
-                // to existing if found.
                 variant.setStock(variant.getStock() + dto.getStock());
                 variantRepo.save(variant);
             }
         }
 
-        // Update consolidated stock and size list on the Product entity for quick
-        // display
+        synchronizeStock(product);
+
+        // Update color/size list on the Product entity for quick display
         List<com.example.PBL3.model.ProductVariant> variants = variantRepo.findByProduct(product);
-        product.setStock(variants.stream().mapToInt(com.example.PBL3.model.ProductVariant::getStock).sum());
         List<String> allSizes = variants.stream().map(com.example.PBL3.model.ProductVariant::getSize)
+                .distinct()
                 .collect(Collectors.toList());
+        List<String> allColors = variants.stream().map(com.example.PBL3.model.ProductVariant::getColor)
+                .filter(c -> c != null && !c.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+
         try {
             product.setSize(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(allSizes));
+            product.setColor(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(allColors));
         } catch (Exception e) {
             product.setSize(String.join(",", allSizes));
+            product.setColor(String.join(",", allColors));
         }
         productRepo.save(product);
 
@@ -188,8 +194,11 @@ public class ProductServiceImpl implements ProductService {
         existing.setDiscount(dto.getDiscount());
         existing.setSize(dto.getSize());
         existing.setColor(dto.getColor());
-        // Reset status to PENDING on any update so Admin must re-approve
-        existing.setStatus(ProductStatus.PENDING);
+        // Maintain APPROVED/AVAILABLE status during minor updates to keep products
+        // visible
+        if (existing.getStatus() != ProductStatus.APPROVED && existing.getStatus() != ProductStatus.AVAILABLE) {
+            existing.setStatus(ProductStatus.PENDING);
+        }
         if (dto.getCategoryId() != null) {
             Category category = categoryRepo.findById(dto.getCategoryId())
                     .orElseThrow(() -> new EntityNotFoundException("Category not found"));
@@ -212,6 +221,8 @@ public class ProductServiceImpl implements ProductService {
                 imageRepo.save(img);
             }
         }
+
+        synchronizeStock(existing);
 
         return mapperUtil.toProductDTO(existing);
     }
@@ -244,7 +255,9 @@ public class ProductServiceImpl implements ProductService {
         List<Product> products = productRepo.findAll();
 
         return products.stream()
-                .filter(product -> product.getStatus() != ProductStatus.DISCONTINUED)
+                .filter(product -> product.getStatus() == ProductStatus.APPROVED
+                        || product.getStatus() == ProductStatus.AVAILABLE
+                        || product.getStatus() == ProductStatus.OUT_OF_STOCK)
                 .filter(product -> name == null || product.getName().toLowerCase().contains(name.toLowerCase()))
                 .filter(product -> minPrice == null || product.getPrice().compareTo(minPrice) >= 0)
                 .filter(product -> maxPrice == null || product.getPrice().compareTo(maxPrice) <= 0)
@@ -359,18 +372,45 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found"));
 
+        List<com.example.PBL3.model.ProductVariant> actualVariants = variantRepo.findByProduct(product);
+
+        // Normalize inputs
+        String finalColor = (color == null) ? "" : color.trim();
+        String finalSize = (size == null) ? "" : size.trim();
+
+        if (actualVariants.isEmpty()) {
+            return product.getStock();
+        }
+
         // If both color and size are provided, find exact variant
-        if (color != null && !color.isEmpty() && size != null && !size.isEmpty()) {
-            return variantRepo.findByProductAndColorAndSize(product, color, size)
+        if (!finalColor.isEmpty() && !finalSize.isEmpty()) {
+            return variantRepo.findByProductAndColorAndSize(product, finalColor, finalSize)
                     .map(com.example.PBL3.model.ProductVariant::getStock)
-                    .orElse(0);
+                    .orElseGet(() -> {
+                        // Retry with looser matching if exact match fails
+                        return variantRepo.findByProduct(product).stream()
+                                .filter(v -> v.getSize().equalsIgnoreCase(finalSize) &&
+                                        (v.getColor() == null || v.getColor().equalsIgnoreCase(finalColor)))
+                                .findFirst()
+                                .map(com.example.PBL3.model.ProductVariant::getStock)
+                                .orElse(0);
+                    });
         }
 
         // If only size is provided, find by size
-        if (size != null && !size.isEmpty()) {
-            return variantRepo.findByProductAndSize(product, size)
-                    .map(com.example.PBL3.model.ProductVariant::getStock)
-                    .orElse(0);
+        if (!finalSize.isEmpty()) {
+            return variantRepo.findByProduct(product).stream()
+                    .filter(v -> finalSize.equalsIgnoreCase(v.getSize()))
+                    .mapToInt(com.example.PBL3.model.ProductVariant::getStock)
+                    .sum();
+        }
+
+        // If only color is provided, find by color
+        if (!finalColor.isEmpty()) {
+            return variantRepo.findByProduct(product).stream()
+                    .filter(v -> finalColor.equalsIgnoreCase(v.getColor()))
+                    .mapToInt(com.example.PBL3.model.ProductVariant::getStock)
+                    .sum();
         }
 
         // Otherwise return total product stock
@@ -453,5 +493,35 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return result.stream().limit(limit).collect(Collectors.toList());
+    }
+
+    @Override
+    public void synchronizeAllStock() {
+        List<Product> products = productRepo.findAll();
+        for (Product product : products) {
+            synchronizeStock(product);
+        }
+    }
+
+    /**
+     * Synchronizes the main product stock with the sum of its variant stocks.
+     */
+    private void synchronizeStock(Product product) {
+        List<com.example.PBL3.model.ProductVariant> variants = variantRepo.findByProduct(product);
+        if (variants != null && !variants.isEmpty()) {
+            int totalStock = variants.stream().mapToInt(com.example.PBL3.model.ProductVariant::getStock).sum();
+
+            // Only update if mismatch
+            if (product.getStock() != totalStock) {
+                product.setStock(totalStock);
+                if (totalStock <= 0) {
+                    product.setStatus(ProductStatus.OUT_OF_STOCK);
+                } else if (product.getStatus() == ProductStatus.OUT_OF_STOCK) {
+                    product.setStatus(ProductStatus.AVAILABLE);
+                }
+                productRepo.save(product);
+                log.info("Synchronized stock for product " + product.getId() + ": " + totalStock);
+            }
+        }
     }
 }
